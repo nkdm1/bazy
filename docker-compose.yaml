@@ -1,0 +1,18 @@
+services:
+  database:
+    image: mariadb:10.11
+    container_name: db
+    restart: always
+    environment:
+      MARIADB_ROOT_PASSWORD: ${MARIADB_ROOT_PASSWORD}    
+      MARIADB_DATABASE: db             
+      MARIADB_USER: user                     
+      MARIADB_PASSWORD: ${MARIADB_PASSWORD}     
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - mariadb_data:/var/lib/mysql
+
+volumes:
+  mariadb_data:
