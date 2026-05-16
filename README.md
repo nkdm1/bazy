@@ -1,21 +1,27 @@
-install docker and git on a linux vm
+1. install docker and git on a linux vm
 
-'git clone https://github.com/nkdm1/bazy.git' to the linux vm
+2. 'git clone https://github.com/nkdm1/bazy.git' to the linux vm
 
-- docker compose up -d 
+3. CREATE .env FILE AND PASTE:
+   - MARIADB_ROOT_PASSWORD="USERPASSWORD"
+   - MARIADB_PASSWORD="ROOTPASSWORD"
+
+docker commands:
+- sudo docker compose up -d 
   - starts the database server
 
-- docker compose down
+- sudo docker compose down
   - stops the database server
 
-- docker compose down -v  
+- sudo docker compose down -v  
   - stops the database server and 
     unmounts the volume so all the data from the 
     database tables will be wiped out on the next start
 
-- sudo docker dompose exec database mariadb -u user -ppasswd db 
+- sudo docker compose exec database mariadb -u user -pUSERPASSWORD db 
   - launches interactive mariadb shell as user
 
-- sudo docker dompose exec database mariadb -u root -proot db 
+- sudo docker compose exec database mariadb -u root -pROOTPASSWORD db 
   - launches interactive mariadb shell as root 
+
 
