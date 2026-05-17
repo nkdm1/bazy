@@ -1,8 +1,9 @@
+## how to setup local database
 1. install docker and git on a linux vm
 
 2. 'git clone https://github.com/nkdm1/bazy.git' to the linux vm
 
-3. CREATE .env FILE AND PASTE:
+3. CREATE db/.env FILE AND PASTE:
    - MARIADB_ROOT_PASSWORD="USERPASSWORD"
    - MARIADB_PASSWORD="ROOTPASSWORD"
 
