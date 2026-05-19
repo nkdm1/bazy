@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"log"
 
-	"app/internal/db"
-	"app/internal/queries"
+	"github.com/nkdm1/bazy/internal/db"
+	"github.com/nkdm1/bazy/internal/queries"
 
 	_ "github.com/go-sql-driver/mysql"
 )

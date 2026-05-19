@@ -1,4 +1,4 @@
-module app
+module github.com/nkdm1/bazy
 
 go 1.26.3
 
