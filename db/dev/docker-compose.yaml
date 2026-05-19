@@ -1,5 +1,5 @@
 services:
-  database:
+  db:
     image: mariadb:10.11
     container_name: db
     restart: always
