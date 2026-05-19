@@ -19,10 +19,10 @@ docker commands:
     unmounts the volume so all the data from the 
     database tables will be wiped out on the next start
 
-- sudo docker compose exec database mariadb -u user -pUSERPASSWORD db 
+- sudo docker compose exec db mariadb -u user -pUSERPASSWORD db 
   - launches interactive mariadb shell as user
 
-- sudo docker compose exec database mariadb -u root -pROOTPASSWORD db 
+- sudo docker compose exec db mariadb -u root -pROOTPASSWORD db 
   - launches interactive mariadb shell as root 
 
 
