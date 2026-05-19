@@ -4,7 +4,7 @@ CREATE TABLE `users` (
   `password_hash` varchar(255),
   `name` varchar(100),
   `surname` varchar(100),
-  `role` ENUM(admin,referee,viewer) NOT NULL DEFAULT 'viewer',
+  `role` ENUM ('admin', 'referee', 'viewer') NOT NULL DEFAULT 'viewer',
   `created_at` timestamp NOT NULL,
   `deleted_at` timestamp
 );
@@ -16,7 +16,7 @@ CREATE TABLE `set_mail` (
   `verification_code` varchar(255) NOT NULL,
   `created_at` timestamp NOT NULL,
   `expire_time` timestamp NOT NULL,
-  `status` ENUM(pending,expired,used) NOT NULL DEFAULT 'active'
+  `status` ENUM ('pending', 'expired', 'used') NOT NULL DEFAULT 'pending'
 );
 
 CREATE TABLE `set_password` (
@@ -25,16 +25,7 @@ CREATE TABLE `set_password` (
   `reset_token` varchar(255) NOT NULL,
   `created_at` timestamp NOT NULL,
   `expire_time` timestamp NOT NULL,
-  `status` ENUM(pending,expired,used) NOT NULL DEFAULT 'active'
-);
-
-CREATE TABLE `address` (
-  `id` integer PRIMARY KEY,
-  `postcode` varchar(6) NOT NULL,
-  `city` varchar(100) NOT NULL,
-  `street` varchar(100),
-  `street_number` varchar(100) NOT NULL,
-  `flat_number` varchar(255)
+  `status` ENUM ('pending', 'expired', 'used') NOT NULL DEFAULT 'pending'
 );
 
 CREATE TABLE `referees` (
@@ -51,12 +42,16 @@ CREATE TABLE `set_phone` (
   `otp_code` varchar(6) NOT NULL,
   `created_at` timestamp NOT NULL,
   `expire_time` timestamp NOT NULL,
-  `status` ENUM(pending,expired,used) NOT NULL DEFAULT 'pending'
+  `status` ENUM ('pending', 'expired', 'used') NOT NULL DEFAULT 'pending'
 );
 
-CREATE TABLE `licenses_names` (
+CREATE TABLE `address` (
   `id` integer PRIMARY KEY,
-  `license_name` varchar(255) NOT NULL
+  `postcode` varchar(6) NOT NULL,
+  `city` varchar(100) NOT NULL,
+  `street` varchar(100),
+  `street_number` varchar(100) NOT NULL,
+  `flat_number` varchar(100)
 );
 
 CREATE TABLE `licenses` (
@@ -66,6 +61,11 @@ CREATE TABLE `licenses` (
   `license_name_id` integer NOT NULL,
   `issued_at` date NOT NULL,
   `expire_at` date NOT NULL
+);
+
+CREATE TABLE `licenses_names` (
+  `id` integer PRIMARY KEY,
+  `license_name` varchar(255) NOT NULL
 );
 
 CREATE TABLE `availability` (
@@ -80,17 +80,6 @@ CREATE TABLE `teams` (
   `city` varchar(100) NOT NULL
 );
 
-CREATE TABLE `matches_level` (
-  `id` integer PRIMARY KEY,
-  `match_level` ENUM(FIBA,PLK,centralna,okregowa,stazysta) NOT NULL
-);
-
-CREATE TABLE `venues` (
-  `id` integer PRIMARY KEY,
-  `gym_name` varchar(255) NOT NULL,
-  `address_id` integer NOT NULL
-);
-
 CREATE TABLE `matches` (
   `id` integer PRIMARY KEY,
   `match_start` timestamp NOT NULL,
@@ -99,12 +88,9 @@ CREATE TABLE `matches` (
   `venue_id` integer NOT NULL,
   `home_team_id` integer NOT NULL,
   `away_team_id` integer NOT NULL,
-  `status` ENUM(scheduled,completed,cancelled) NOT NULL DEFAULT 'scheduled'
-);
-
-CREATE TABLE `role_in_match` (
-  `id` integer PRIMARY KEY,
-  `match_role` ENUM(crew_chief,umpire) NOT NULL DEFAULT 'umpire'
+  `status` ENUM ('scheduled', 'completed', 'cancelled') NOT NULL DEFAULT 'scheduled',
+  `home_team_points` integer,
+  `away_team_points` integer
 );
 
 CREATE TABLE `match_assignments` (
@@ -112,7 +98,7 @@ CREATE TABLE `match_assignments` (
   `referee_id` integer NOT NULL,
   `match_id` integer NOT NULL,
   `role` integer NOT NULL,
-  `assignment_status` ENUM(pending,accepted,declined,cancelled,noshow) NOT NULL DEFAULT 'pending'
+  `assignment_status` ENUM ('pending', 'accepted', 'declined', 'cancelled', 'noshow') NOT NULL DEFAULT 'pending'
 );
 
 CREATE TABLE `wages` (
@@ -123,12 +109,28 @@ CREATE TABLE `wages` (
   `valid_from` date NOT NULL
 );
 
+CREATE TABLE `matches_level` (
+  `id` integer PRIMARY KEY,
+  `match_level` ENUM ('fiba', 'plk', 'centralna', 'okregowa', 'stazysta') NOT NULL
+);
+
+CREATE TABLE `role_in_match` (
+  `id` integer PRIMARY KEY,
+  `match_role` ENUM ('crew_chief', 'umpire') NOT NULL DEFAULT 'umpire'
+);
+
+CREATE TABLE `venues` (
+  `id` integer PRIMARY KEY,
+  `gym_name` varchar(255) NOT NULL,
+  `address_id` integer NOT NULL
+);
+
 CREATE TABLE `payouts` (
   `id` integer PRIMARY KEY,
   `assignment_id` integer UNIQUE NOT NULL,
   `wages_id` integer NOT NULL,
   `amount` decimal(10,2) NOT NULL,
-  `status` ENUM(pending,sent,paid,failed) NOT NULL DEFAULT 'pending',
+  `status` ENUM ('pending', 'sent', 'paid', 'failed') NOT NULL DEFAULT 'pending',
   `bank_transaction_id` varchar(255),
   `paid_at` timestamp
 );
@@ -184,7 +186,7 @@ ALTER TABLE `payouts` ADD FOREIGN KEY (`wages_id`) REFERENCES `wages` (`id`);
 
 ALTER TABLE `licenses` ADD FOREIGN KEY (`license_name_id`) REFERENCES `licenses_names` (`id`);
 
-ALTER TABLE `address` ADD FOREIGN KEY (`id`) REFERENCES `venues` (`address_id`);
+ALTER TABLE `venues` ADD FOREIGN KEY (`address_id`) REFERENCES `address` (`id`);
 
 ALTER TABLE `referees` ADD FOREIGN KEY (`address_id`) REFERENCES `address` (`id`);
 
