@@ -1,8 +1,8 @@
 # please - read this slowly and carefully 
 ### table of contents
 - [download the repo](#download-the-repo)
-- [linux vm: setup the database environment](#linux-vm:-setup-the-database-environment)
-- [your pc: setup the app environment](#your-pc:-setup-the-app-environment)
+- [linux vm: setup the database environment](#linux-vm-setup-the-database-environment)
+- [your pc: setup the app environment](#your-pc-setup-the-app-environment)
 - [docker commands](#docker-commands)
 - [resources](#resources)
 ## download the repo
