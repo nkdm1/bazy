@@ -1,6 +1,7 @@
-package db
+package database
 
 import (
+	"context"
 	"database/sql"
 	"fmt"
 	"os"
@@ -35,7 +36,7 @@ func LoadConfig() (*Config, error) {
 	return config, nil
 }
 
-func Open(config *Config) (*sql.DB, error) {
+func Connect(config *Config) (*sql.DB, error) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s)/db?parseTime=true", config.User, config.Password, config.Addr)
 
 	db, err := sql.Open("mysql", dsn)
@@ -46,13 +47,13 @@ func Open(config *Config) (*sql.DB, error) {
 	db.SetMaxOpenConns(4)
 	db.SetMaxIdleConns(4)
 	db.SetConnMaxLifetime(5 * time.Minute)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 
-	err = db.Ping()
+	err = db.PingContext(ctx)
 	if err != nil {
 		return nil, err
 	}
 
 	return db, nil
 }
-
-
