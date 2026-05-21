@@ -66,7 +66,17 @@
 
 ## resources
 * git:
-    * https://youtu.be/Q62uJjPHF3U -> me yapping about the git workflow
-    * https://www.youtube.com/watch?v=Ala6PHlYjmw -> understand what is happening behind the commands - watch until 6:30
+    * [our git workflow](https://youtu.be/Q62uJjPHF3U)
+    * [understand git](https://www.youtube.com/watch?v=Ala6PHlYjmw)
+    * [git book](https://git-scm.com/book/en/v2)
+* go:
+    * text:
+        * [tour of go](https://go.dev/tour/welcome/1)
+        * [go by example](https://go.dev/tour/welcome/1)
+        * [chi repo](https://github.com/go-chi/chi)
+        * [go stdlib docs](https://pkg.go.dev/std)
+    * video:
+        * [tutorial 1](https://www.youtube.com/watch?v=s3XItrqfccw&list=WL&index=3&t=2305s)  
+        * [tutorial 2](https://www.youtube.com/watch?v=7VLmLOiQ3ck&list=WL&index=4&t=1573s)
 
 
