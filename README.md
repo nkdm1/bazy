@@ -47,9 +47,9 @@
     ```
 4. edit .env file so that DB_ADDR variable has assigned the correct IP - **don't change anything else**
 ### start development loop
-1. start air in a **seperate** terminal window:
+1. start air in a **separate** terminal window:
     ```
-    cd app/cmd
+    cd app
     go tool air
     ```
     air will recompile and restart the application on any file change
