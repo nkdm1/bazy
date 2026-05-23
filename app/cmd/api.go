@@ -44,7 +44,7 @@ func databaseConnect() *sql.DB {
 	if err != nil {
 		panic(err)
 	}
-	log.Println("successfully connected to database")
+	log.Println("successfully connected to the database")
 	return dbInstance
 }
 
