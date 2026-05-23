@@ -1,5 +1,6 @@
 main
 .env
 .DS_store
+.air
 *tmp
 
