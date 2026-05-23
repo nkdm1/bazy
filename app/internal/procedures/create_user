@@ -1,0 +1,8 @@
+1. user sends POST request with data:
+	- email
+	- name
+	- surname
+2. write name, surname to 'users' table
+3. execute set_mail procedure
+4. execute set_password procedure
+

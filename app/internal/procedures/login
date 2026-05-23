@@ -1,0 +1,6 @@
+1. backend receives data:
+	- email 
+	- password
+2. validates credentials
+3. creates new session token, writes it to global 'tokens' variable
+4. sends 200 with the token attached in a cookie  

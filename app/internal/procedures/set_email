@@ -1,0 +1,21 @@
+1. backend receives data: 
+	- email
+	- auth token
+2. validate email (regex)
+3. generate a verification code 
+4. new record in 'set_mail' table:
+	- expire time 1h from now
+	- status pending 
+5. send the verification code to the new email
+6. backend receives data: 
+	- verification code (prolly a special long url get request)
+
+if code matches && is not expired && is not used: 
+	- write email to 'users' table
+	- change status to 'used' in 'set_mail' table
+else if code matches && is expired:
+	- change status to 'expired' in 'set_mail' table
+	- return error to user
+else:
+	- return error to user
+	
