@@ -10,12 +10,16 @@
 6. backend receives data: 
 	- verification code (prolly a special long url get request)
 
-if code matches && is not expired && is not used: 
+if code matches && is not expired && is not used && user_id exists in 'users' table: 
 	- write email to 'users' table
 	- change status to 'used' in 'set_mail' table
+	- return ok
+else if code matches && is not expired && is not used && user_id not exists in 'users' table: 
+	- change status to 'used' in 'set_mail' table
+	- return ok  
 else if code matches && is expired:
 	- change status to 'expired' in 'set_mail' table
-	- return error to user
+	- return error 
 else:
-	- return error to user
+	- return error
 	

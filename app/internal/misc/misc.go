@@ -4,7 +4,14 @@ import (
 	"fmt"
 	"os"
 	"runtime"
+	"crypto/sha512"
 )
+
+func HashPassword(password string) string {
+	sha := sha512.New()
+	sha.Write([]byte(password))
+	return string(sha.Sum(nil))
+}
 
 func Panicf(format string, v ...any) {
 	_, file, line, ok := runtime.Caller(1)

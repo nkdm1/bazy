@@ -4,20 +4,25 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"log"
 	"os"
 	"time"
 
 	"github.com/joho/godotenv"
 )
 
-type Config struct {
+type Database struct {
+	instance *sql.DB
+}
+
+type config struct {
 	Addr     string
 	User     string
 	Password string
 }
 
-func LoadConfig() (*Config, error) {
-	config := new(Config)
+func loadConfig() (*config, error) {
+	config := new(config)
 	if err := godotenv.Load(); err != nil {
 		return nil, fmt.Errorf(".env file not found")
 	}
@@ -36,7 +41,7 @@ func LoadConfig() (*Config, error) {
 	return config, nil
 }
 
-func Connect(config *Config) (*sql.DB, error) {
+func connect(config *config) (*sql.DB, error) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s)/db?parseTime=true", config.User, config.Password, config.Addr)
 
 	db, err := sql.Open("mysql", dsn)
@@ -56,4 +61,20 @@ func Connect(config *Config) (*sql.DB, error) {
 	}
 
 	return db, nil
+}
+
+func Init() *Database {
+	config, err := loadConfig()
+	if err != nil {
+		panic(err)
+	}
+	log.Printf("connecting to the database on %s\n", config.Addr)
+	instance, err := connect(config)
+	if err != nil {
+		panic(err)
+	}
+	log.Println("successfully connected to the database")
+	return &Database{
+		instance,
+	}
 }
