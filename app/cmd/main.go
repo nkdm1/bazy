@@ -1,9 +1,10 @@
 package main
 
+import (
+	"github.com/nkdm1/bazy/internal/api"
+)
 
 func main() {
-	api := &api{
-		db: databaseConnect(),
-	}
-	api.run(api.mount())
+	api := api.Init()
+	api.Run(api.Mount())
 }
