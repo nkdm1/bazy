@@ -2,8 +2,10 @@ package api
 
 import (
 	"crypto/rand"
+	"database/sql"
 	"encoding/hex"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -14,11 +16,6 @@ import (
 
 	"github.com/nkdm1/bazy/internal/misc"
 )
-
-// status returns 'ok'
-func (a *Api) status(w http.ResponseWriter, r *http.Request) {
-	ok(w, http.StatusOK, "ok")
-}
 
 // login authenticates user by email and password, then returns session_id via cookie
 func (a *Api) login(w http.ResponseWriter, r *http.Request) {
@@ -48,10 +45,15 @@ func (a *Api) login(w http.ResponseWriter, r *http.Request) {
 	// from this point the 'business'	logic of the function happens
 
 	// call database via a.Database methods
+	// create these methods yourself in internal/database/<filename>.go
 	hash, err := a.Database.GetPasswordHash(email)
 	if err != nil {
+		if found := errors.Is(err, sql.ErrNoRows); found {
+			fail(w, http.StatusUnauthorized, "invalid email or password")
+			return
+		}
 		log.Printf("[ERROR] Database failure during login: %v", err)
-		fail(w, http.StatusInternalServerError, err.Error())
+		fail(w, http.StatusServiceUnavailable, err.Error())
 		return
 	}
 
@@ -94,6 +96,11 @@ func (a *Api) login(w http.ResponseWriter, r *http.Request) {
 	// attach a positive http.Status<Name>, write a meaningful response message
 	// 		and pass the `response` struct if needed
 	ok(w, http.StatusOK, "login successful", response)
+}
+
+// status returns 'ok'
+func (a *Api) status(w http.ResponseWriter, r *http.Request) {
+	ok(w, http.StatusOK, "ok")
 }
 
 // =========================================================================
@@ -148,13 +155,16 @@ func fail(w http.ResponseWriter, status int, err string) {
 	}
 }
 
-// loadPayload loads the payload from `r.Body` to `payload` structure
+// loadPayload loads the payload from `body` to `dst` structure
 func loadPayload(dst any, body io.ReadCloser) error {
 	decoder := json.NewDecoder(body)
 	decoder.DisallowUnknownFields()
 
 	if err := decoder.Decode(dst); err != nil {
-		return fmt.Errorf("invalid json body: %w", err)
+		if maxBytes, found := errors.AsType[*http.MaxBytesError](err); found {
+			return maxBytes
+		}
+		return errors.New("invalid json body")
 	}
 
 	val := reflect.ValueOf(dst)
