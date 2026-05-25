@@ -1,6 +1,6 @@
 CREATE TABLE `users` (
   `id` integer PRIMARY KEY,
-  `email` varchar(255) UNIQUE,
+  `email` varchar(255) UNIQUE NOT NULL,
   `password_hash` varchar(255),
   `name` varchar(100),
   `surname` varchar(100),
@@ -144,7 +144,18 @@ CREATE TABLE `reviews` (
   `created_by` integer NOT NULL
 );
 
+CREATE TABLE `auth_tokens` (
+  `id` integer PRIMARY KEY,
+  `user_id` integer NOT NULL,
+  `token_hash` varchar(255) NOT NULL,
+  `created_at` timestamp NOT NULL,
+  `expire_at` timestamp NOT NULL,
+  `last_used_at` timestamp
+);
+
 CREATE UNIQUE INDEX `availability_index_0` ON `availability` (`referee_id`, `available_date`);
+
+ALTER TABLE `auth_tokens` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 
 ALTER TABLE `users` ADD FOREIGN KEY (`id`) REFERENCES `referees` (`user_id`);
 

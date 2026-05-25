@@ -15,7 +15,7 @@ import (
 	"github.com/nkdm1/bazy/internal/misc"
 )
 
-// status return 'ok'
+// status returns 'ok'
 func (a *Api) status(w http.ResponseWriter, r *http.Request) {
 	ok(w, http.StatusOK, "ok")
 }
