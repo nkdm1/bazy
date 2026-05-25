@@ -1,0 +1,8 @@
+1. When we receive information about user and his status as a referee we can go to:
+ a) backend receive:
+    -address information( postcode, city and/or street, street number and/or flat number)
+    -phone number
+    -auth_token
+2. Validate the format ( postcode 6 numbers in format XX-XXX)
+3. Write address information to the Address Table and sync with Referees Table.
+4. Execute set_phone procedure
