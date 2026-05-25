@@ -1,0 +1,4 @@
+1. Referee enters days in which he/she wants to work
+2. backend receive:
+    - a date in format YYYY-MM-DD
+2. Every referee can enter as many availability records as he/she wants.
