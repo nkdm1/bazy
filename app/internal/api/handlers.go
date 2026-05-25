@@ -47,6 +47,7 @@ func (a *Api) login(w http.ResponseWriter, r *http.Request) {
 
 	// from this point the 'business'	logic of the function happens
 
+	// call database via a.Database methods
 	hash, err := a.Database.GetPasswordHash(email)
 	if err != nil {
 		log.Printf("[ERROR] Database failure during login: %v", err)
