@@ -38,8 +38,8 @@
     ```
 3. create .env with database credentials and address:
     ```
-    touch cmd/.env
-    cat << EOF > cmd/.env
+    touch .env
+    cat << EOF > .env
     DB_ADDR=<YOUR-LINUX-VM-IP>:3306
     DB_USER=user
     DB_PASSWORD=user
