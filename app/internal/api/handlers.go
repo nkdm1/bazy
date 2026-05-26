@@ -85,17 +85,17 @@ func (a *Api) login(w http.ResponseWriter, r *http.Request) {
 	// if you need to return any data to the user, create a `response` struct
 	// 		similar to the `payload` struct we have defined at the start of the function
 	//
-	response := new(struct {
-		Score int    `json:"score"`
-		Team  string `json:"team"`
-	})
+	// response := new(struct {
+	// 	Score int    `json:"score"`
+	// 	Team  string `json:"team"`
+	// })
 	//
 	// this time, the field types must NOT be pointers, just use the expected types
 
 	// end the request with `ok()` function
 	// attach a positive http.Status<Name>, write a meaningful response message
 	// 		and pass the `response` struct if needed
-	ok(w, http.StatusOK, "login successful", response)
+	ok(w, http.StatusOK, "login successful")
 }
 
 // status returns 'ok'
