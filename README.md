@@ -76,6 +76,7 @@
         * [chi repo](https://github.com/go-chi/chi)
         * [go stdlib docs](https://pkg.go.dev/std)
     * video:
+        * [codebase walkthrough](https://youtu.be/X5tMH2oVZiY)
         * [tutorial 1](https://www.youtube.com/watch?v=s3XItrqfccw&list=WL&index=3&t=2305s)  
         * [tutorial 2](https://www.youtube.com/watch?v=7VLmLOiQ3ck&list=WL&index=4&t=1573s)
 
