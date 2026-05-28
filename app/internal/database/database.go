@@ -13,6 +13,21 @@ import (
 
 type Database struct {
 	instance *sql.DB
+	timeout  time.Duration
+}
+
+func (db *Database) query(query string, args ...any) (*sql.Rows, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), db.timeout)
+	defer cancel()
+
+	return db.instance.QueryContext(ctx, query, args...)
+}
+
+func (db *Database) queryRow(query string, args ...any) *sql.Row {
+	ctx, cancel := context.WithTimeout(context.Background(), db.timeout)
+	defer cancel()
+
+	return db.instance.QueryRowContext(ctx, query, args...)
 }
 
 type config struct {
@@ -76,5 +91,6 @@ func Init() *Database {
 	log.Println("successfully connected to the database")
 	return &Database{
 		instance,
+		time.Second * 5,
 	}
 }

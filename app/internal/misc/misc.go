@@ -1,26 +1,37 @@
 package misc
 
 import (
-	"fmt"
-	"os"
-	"runtime"
-	"crypto/sha512"
+	"crypto/rand"
+	"log"
+
+	"golang.org/x/crypto/bcrypt"
 )
 
-func HashPassword(password string) string {
-	sha := sha512.New()
-	sha.Write([]byte(password))
-	return string(sha.Sum(nil))
+// HashPassword takes a plaintext password and securely hashes it using bcrypt.
+// It automatically handles generating a unique cryptographically secure salt.
+func HashPassword(password string) (string, error) {
+	hash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		// We log this, but return an empty string so that any login attempt
+		// against this broken hash will automatically and safely fail.
+		log.Printf("[ERROR] Failed to hash password: %v", err)
+		return "", err
+	}
+	return string(hash), nil
 }
 
-func Panicf(format string, v ...any) {
-	_, file, line, ok := runtime.Caller(1)
-	if !ok {
-		file = "unknown"
-		line = -1
+// CheckPassword securely compares a bcrypt hash against a plaintext password.
+// It mitigates timing attacks and automatically extracts the salt from the hash.
+func CheckPassword(hash, password string) bool {
+	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
+	return err == nil
+}
+
+func GenerateSessionID() ([]byte, error) {
+	sessionID := make([]byte, 32)
+	if _, err := rand.Read(sessionID); err != nil {
+		log.Printf("[ERROR] unable to generate session id: %v", err)
+		return nil, err
 	}
-	userMsg := fmt.Sprintf(format, v...)
-	fmt.Fprintf(os.Stderr, "panic: %s\n", userMsg)
-	fmt.Fprintf(os.Stderr, "\t%s:%d\n", file, line)
-	os.Exit(2)
+	return sessionID, nil
 }

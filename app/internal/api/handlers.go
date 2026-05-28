@@ -1,20 +1,19 @@
 package api
 
 import (
-	"crypto/rand"
-	"database/sql"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"io"
 	"log"
+	"maps"
 	"net/http"
 	"reflect"
 	"strings"
 	"time"
 
 	"github.com/nkdm1/bazy/internal/misc"
+	"github.com/nkdm1/bazy/internal/types"
 )
 
 // login authenticates user by email and password, then returns session_id via cookie
@@ -33,9 +32,9 @@ func (a *Api) login(w http.ResponseWriter, r *http.Request) {
 	// remember to check for errors
 	if err := loadPayload(payload, r.Body); err != nil {
 		// if the err variable is not nil, we have encountered a failure (error)
-		// failures should be returned to the user using the `fail()` function
+		// failures should be written to the user using the `fail()` function
 		// read more about the `fail()` function at the bottom of the file
-		fail(w, http.StatusBadRequest, err.Error())
+		fail(w, err)
 		// return after using the `fail()` function
 		return
 	}
@@ -46,27 +45,27 @@ func (a *Api) login(w http.ResponseWriter, r *http.Request) {
 
 	// call database via a.Database methods
 	// create these methods yourself in internal/database/<filename>.go
-	hash, err := a.Database.GetPasswordHash(email)
-	if err != nil {
-		if found := errors.Is(err, sql.ErrNoRows); found {
-			fail(w, http.StatusUnauthorized, "invalid email or password")
-			return
-		}
-		log.Printf("[ERROR] Database failure during login: %v", err)
-		fail(w, http.StatusServiceUnavailable, err.Error())
+	hash, dbErr := a.Database.GetPasswordHash(email)
+	if dbErr != nil {
+		fail(w, dbErr)
 		return
 	}
 
-	if hash != misc.HashPassword(password) {
-		fail(w, http.StatusUnauthorized, "invalid email or password")
+	// if your logic (like in the example below, checking if password matches database)
+	// 		fails, remember to pass correct types.Err* to fail() function
+	//		it depends completely on what the logic is so the responsibility is on you
+	// misc functions are just generic logic helper functions, you can create them as you need
+	if !misc.CheckPassword(hash, password) {
+		fail(w, types.ErrInvalidEmailOrPassword)
 		return
 	}
 
-	sessionID := make([]byte, 32)
-	if _, err = rand.Read(sessionID); err != nil {
-		log.Printf("[ERROR] Crypto rand read failure: %v", err)
-		fail(w, http.StatusInternalServerError,
-			fmt.Sprintf("unable to generate the session id: %s", err.Error()))
+	// this is also a generic logic but not wrapped as a misc function
+	//		because i think it's too short to declare in misc module
+	// i would say if a logic takes more than 8 lines of code, it probably should go to misc
+	sessionID, genErr := misc.GenerateSessionID()
+	if genErr != nil {
+		fail(w, types.ErrInternalServer)
 		return
 	}
 
@@ -89,19 +88,33 @@ func (a *Api) login(w http.ResponseWriter, r *http.Request) {
 	// 	Score int    `json:"score"`
 	// 	Team  string `json:"team"`
 	// })
+	// response.Score = 2
+	// response.Team = "Majowe Borsuki"
 	//
 	// this time, the field types must NOT be pointers, just use the expected types
 
 	// end the request with `ok()` function
 	// attach a positive http.Status<Name>, write a meaningful response message
-	// 		and pass the `response` struct if needed
-	ok(w, http.StatusOK, "login successful")
+	// 		and pass the `response` struct if needed, otherwise pass `nil`
+	ok(w, http.StatusOK, "login successful", nil)
 }
 
 // status returns 'ok'
 func (a *Api) status(w http.ResponseWriter, r *http.Request) {
-	ok(w, http.StatusOK, "ok")
+	ok(w, http.StatusOK, "ok", nil)
 }
+
+// wip
+// func (a *Api) register(w http.ResponseWriter, r *http.Request) {
+// 	payload := new(struct {
+// 		Email   *string `json:"email"`
+// 		Name    *string `json:"name"`
+// 		Surname *string `json:"surname"`
+// 	})
+// 	if err := loadPayload(payload, r.Body); err != nil {
+//
+// 	}
+// }
 
 // =========================================================================
 // HELPER FUNCTIONS
@@ -110,8 +123,8 @@ func (a *Api) status(w http.ResponseWriter, r *http.Request) {
 // ok writes a successful http response status code `status`
 // with `message` attached and, optionally, any `data` provided
 //
-// `data` has to be in a form acceptable by the json encoder, for example map[string]string
-func ok(w http.ResponseWriter, status int, message string, data ...any) {
+// `data` has to be in a form acceptable by the json encoder, mostly map[string]any
+func ok(w http.ResponseWriter, status int, message string, data any) {
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(status)
 
@@ -120,9 +133,8 @@ func ok(w http.ResponseWriter, status int, message string, data ...any) {
 		Data    any    `json:"data,omitempty"`
 	})
 	response.Message = message
-
-	if len(data) > 0 && data[0] != nil {
-		response.Data = data[0]
+	if data != nil {
+		response.Data = data
 	}
 
 	if err := json.NewEncoder(w).Encode(response); err != nil {
@@ -130,41 +142,39 @@ func ok(w http.ResponseWriter, status int, message string, data ...any) {
 	}
 }
 
-// fail writes an unsuccessful response with `message` to `w`
-// and sets the HTTP response status code to `status`
+// fail writes an unsuccessful response to user using `err`
 //
-// fail takes 3 arguments:
-//   - w (http.ResponseWriter): writes the response to the user
-//   - status (int): sets the HTTP Response status codes;
-//     use http.Status<Name> for this field, instead of raw numbers;
-//     example: use `http.StatusBadRequest` instead of `400`
-//   - error (string): sets a informative message on what has happened wrong;
-//     you should almost always use err.Error() for this field;
-//     if err.Error() does not exist, you must provide a description of the error
-func fail(w http.ResponseWriter, status int, err string) {
+// fail takes 2 arguments:
+//   - w: writes the response to the user
+//   - err: sets a informative message on what has happened wrong;
+//     you should almost always use `err` for this field;
+//     if `err` does not exist, you must declare new basicApiError
+//     in types/errors.go and pass it here
+func fail(w http.ResponseWriter, err types.ErrorApi) {
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
+	w.WriteHeader(err.Code())
 
-	response := new(struct {
-		Error string `json:"error"`
-	})
-	response.Error = err
-
+	response := map[string]any{
+		"error": err.Error(),
+	}
+	if e, found := errors.AsType[types.ErrorApiWithData](err); found {
+		maps.Copy(response, e.ErrorData())
+	}
 	if err := json.NewEncoder(w).Encode(response); err != nil {
 		log.Printf("[ERROR] Failed to encode JSON error response: %v\n", err)
 	}
 }
 
 // loadPayload loads the payload from `body` to `dst` structure
-func loadPayload(dst any, body io.ReadCloser) error {
+func loadPayload(dst any, body io.ReadCloser) types.ErrorApi {
 	decoder := json.NewDecoder(body)
 	decoder.DisallowUnknownFields()
 
 	if err := decoder.Decode(dst); err != nil {
-		if maxBytes, found := errors.AsType[*http.MaxBytesError](err); found {
-			return maxBytes
+		if _, found := errors.AsType[*http.MaxBytesError](err); found {
+			return types.ErrPayloadTooLarge
 		}
-		return errors.New("invalid json body")
+		return types.ErrInvalidJsonBody
 	}
 
 	val := reflect.ValueOf(dst)
@@ -196,7 +206,7 @@ func loadPayload(dst any, body io.ReadCloser) error {
 	}
 
 	if len(missingFields) > 0 {
-		return fmt.Errorf("missing required fields: %s", strings.Join(missingFields, ", "))
+		return &types.ErrMissingRequiredFields{Fields: missingFields}
 	}
 
 	return nil
