@@ -2,12 +2,7 @@
 	- email
 	- name
 	- surname
-2. write name, surname to 'users' table
-3. execute set_mail procedure
-4. if set_mail succeeds:
-		- write the payload to the 'users' table
-	else:
-		- return error
-5. execute set_password procedure
+2. write email, name, surname to 'users' table
+3. execute set_password procedure
 
 
