@@ -9,16 +9,17 @@ import (
 	"github.com/nkdm1/bazy/internal/types"
 )
 
+// GetPasswordHash queries the 'users' table by `email` in search of 'password_hash'
 func (db *Database) GetPasswordHash(email string) (string, types.ErrorApi) {
 	row := db.queryRow(`
-	SELECT id, password_hash 
+	SELECT password_hash 
 		FROM users 
 		WHERE email = ? 
 			AND deleted_at IS NULL;
 	`, email)
 
-	var hash string
-	if err := row.Scan(&hash); err != nil {
+	var maybeHash sql.NullString 
+	if err := row.Scan(&maybeHash); err != nil {
 		switch {
 		case errors.Is(err, sql.ErrNoRows):
 			return "", types.ErrInvalidEmailOrPassword
@@ -30,5 +31,9 @@ func (db *Database) GetPasswordHash(email string) (string, types.ErrorApi) {
 			return "", types.ErrInternalServer
 		}
 	}
+	if !maybeHash.Valid {
+		return "", types.ErrNullPassword
+	}
+	hash := maybeHash.String	
 	return hash, nil
 }

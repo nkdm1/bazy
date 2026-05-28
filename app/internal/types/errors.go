@@ -52,6 +52,10 @@ var (
 		Message: "request's body is too large",
 		Status:  http.StatusRequestEntityTooLarge,
 	}
+	ErrNullPassword = &basicApiError{
+		Message: "password to that account has not been created yet",
+		Status: http.StatusConflict,
+	}
 )
 
 
