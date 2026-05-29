@@ -22,7 +22,7 @@ CREATE TABLE `set_mail` (
 CREATE TABLE `set_password` (
   `id` integer PRIMARY KEY AUTO_INCREMENT,
   `user_id` integer NOT NULL,
-  `token_hash` varchar(255) NOT NULL,
+  `token_hash` varchar(255) UNIQUE NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT (now()),
   `expire_time` timestamp NOT NULL DEFAULT ((NOW() + INTERVAL 1 HOUR)),
   `status` ENUM ('pending', 'expired', 'used') NOT NULL DEFAULT 'pending'
@@ -147,7 +147,7 @@ CREATE TABLE `reviews` (
 CREATE TABLE `auth_tokens` (
   `id` integer PRIMARY KEY AUTO_INCREMENT,
   `user_id` integer NOT NULL,
-  `token_hash` varchar(255) NOT NULL,
+  `token_hash` varchar(255) UNIQUE NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT (now()),
   `expire_time` timestamp NOT NULL DEFAULT ((NOW() + INTERVAL 1 HOUR)),
   `last_used_at` timestamp
@@ -157,7 +157,7 @@ CREATE UNIQUE INDEX `availability_index_0` ON `availability` (`referee_id`, `ava
 
 ALTER TABLE `auth_tokens` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 
-ALTER TABLE `users` ADD FOREIGN KEY (`id`) REFERENCES `referees` (`user_id`);
+ALTER TABLE `referees` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 
 ALTER TABLE `licenses` ADD FOREIGN KEY (`referee_id`) REFERENCES `referees` (`id`);
 
@@ -173,7 +173,7 @@ ALTER TABLE `match_assignments` ADD FOREIGN KEY (`match_id`) REFERENCES `matches
 
 ALTER TABLE `match_assignments` ADD FOREIGN KEY (`referee_id`) REFERENCES `referees` (`id`);
 
-ALTER TABLE `match_assignments` ADD FOREIGN KEY (`id`) REFERENCES `payouts` (`assignment_id`);
+ALTER TABLE `payouts` ADD FOREIGN KEY (`assignment_id`) REFERENCES `match_assignments` (`id`);
 
 ALTER TABLE `reviews` ADD FOREIGN KEY (`referee_id`) REFERENCES `referees` (`id`);
 
