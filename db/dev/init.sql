@@ -2,10 +2,10 @@ CREATE TABLE `users` (
   `id` integer PRIMARY KEY,
   `email` varchar(255) UNIQUE NOT NULL,
   `password_hash` varchar(255),
-  `name` varchar(100),
-  `surname` varchar(100),
+  `name` varchar(100) NOT NULL,
+  `surname` varchar(100) NOT NULL,
   `role` ENUM ('admin', 'referee', 'viewer') NOT NULL DEFAULT 'viewer',
-  `created_at` timestamp NOT NULL,
+  `created_at` timestamp NOT NULL DEFAULT (now()),
   `deleted_at` timestamp
 );
 
