@@ -8,6 +8,7 @@ import (
 	"os"
 	"time"
 
+	_ "github.com/go-sql-driver/mysql"
 	"github.com/joho/godotenv"
 )
 
@@ -16,18 +17,24 @@ type Database struct {
 	timeout  time.Duration
 }
 
-func (db *Database) query(query string, args ...any) (*sql.Rows, error) {
+// exec executes a query without returning any rows. The args are for any placeholder parameters in the query.
+func (db *Database) exec(query string, args ...any) (sql.Result, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), db.timeout)
+	defer cancel()
+	return db.instance.ExecContext(ctx, query, args...)
+}
+func (db *Database) query(query string, args ...any) (*sql.Rows, context.CancelFunc, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), db.timeout)
 	defer cancel()
 
-	return db.instance.QueryContext(ctx, query, args...)
+	rows, err := db.instance.QueryContext(ctx, query, args...)
+	return rows, cancel, err
 }
 
-func (db *Database) queryRow(query string, args ...any) *sql.Row {
+func (db *Database) queryRow(query string, args ...any) (*sql.Row, context.CancelFunc) {
 	ctx, cancel := context.WithTimeout(context.Background(), db.timeout)
-	defer cancel()
 
-	return db.instance.QueryRowContext(ctx, query, args...)
+	return db.instance.QueryRowContext(ctx, query, args...), cancel
 }
 
 type config struct {

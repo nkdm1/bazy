@@ -1,6 +1,7 @@
 package api
 
 import (
+	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
@@ -45,7 +46,7 @@ func (a *Api) login(w http.ResponseWriter, r *http.Request) {
 
 	// call database via a.Database methods
 	// create these methods yourself in internal/database/<filename>.go
-	hash, dbErr := a.Database.GetPasswordHash(email)
+	userId, hash, dbErr := a.Database.GetPasswordHash(email)
 	if dbErr != nil {
 		fail(w, dbErr)
 		return
@@ -60,19 +61,27 @@ func (a *Api) login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	sessionId, genErr := misc.GenerateToken()
+	if genErr != nil {
+		fail(w, genErr)
+		return
+	}
+
 	// this is also a generic logic but not wrapped as a misc function
 	//		because i think it's too short to declare in misc module
-	// i would say if a logic takes more than 8 lines of code, it probably should go to misc
-	sessionID, genErr := misc.GenerateSessionID()
-	if genErr != nil {
-		fail(w, types.ErrInternalServer)
+	// i would say if a logic takes more than 5 lines of code, it probably should go to misc
+	tokenHashBytes := sha256.Sum256(sessionId)
+	tokenHash := hex.EncodeToString(tokenHashBytes[:])
+
+	if dbErr := a.Database.CreateAuthToken(userId, tokenHash); dbErr != nil {
+		fail(w, dbErr)
 		return
 	}
 
 	// this is how creating and attaching cookies looks like
 	cookie := &http.Cookie{
 		Name:     "session_id",
-		Value:    hex.EncodeToString(sessionID),
+		Value:    hex.EncodeToString(sessionId),
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   true,
@@ -105,16 +114,95 @@ func (a *Api) status(w http.ResponseWriter, r *http.Request) {
 }
 
 // wip
-// func (a *Api) register(w http.ResponseWriter, r *http.Request) {
-// 	payload := new(struct {
-// 		Email   *string `json:"email"`
-// 		Name    *string `json:"name"`
-// 		Surname *string `json:"surname"`
-// 	})
-// 	if err := loadPayload(payload, r.Body); err != nil {
-//
-// 	}
-// }
+func (a *Api) register(w http.ResponseWriter, r *http.Request) {
+	payload := new(struct {
+		Email   *string `json:"email"`
+		Name    *string `json:"name"`
+		Surname *string `json:"surname"`
+	})
+	if err := loadPayload(payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+	name, surname := *payload.Name, *payload.Surname
+	email := *payload.Email
+	if !misc.IsValidEmail(email) {
+		fail(w, types.ErrInvalidEmailFormat)
+		return
+	}
+
+	registered, dbErr := a.Database.IsUserRegistered(email)
+	if dbErr != nil {
+		fail(w, dbErr)
+		return
+	}
+	if registered {
+		ok(w, 200, "confirm your email", nil)
+		return
+	}
+
+	userId, err := a.Database.CreatePendingUser(email, name, surname)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	token, err := a.Database.CreateNewPassword(userId)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	response := new(struct {
+		FakeEmailMessage string `json:"fake_email_message"`
+		NextStep         string `json:"next_step"`
+	})
+	response.FakeEmailMessage = token
+	response.NextStep = "/register/confirm"
+
+	ok(w, 200, "confirm your email", response)
+}
+
+func (a *Api) registerConfirm(w http.ResponseWriter, r *http.Request) {
+	payload := new(struct {
+		Token       *string `json:"token"`
+		NewPassword *string `json:"new_password"`
+	})
+	
+	if err := loadPayload(payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	tokenHex := *payload.Token
+	newPassword := *payload.NewPassword
+
+	plainTokenBytes, err := hex.DecodeString(tokenHex)
+	if err != nil {
+		fail(w, types.ErrInvalidPayload)
+		return
+	}
+
+	tokenHashBytes := sha256.Sum256(plainTokenBytes)
+	tokenHash := hex.EncodeToString(tokenHashBytes[:])
+
+	userId, dbErr := a.Database.ConsumeRegistrationToken(tokenHash)
+	if dbErr != nil {
+		fail(w, dbErr)
+		return
+	}
+
+	hash, bcryptErr := misc.HashPassword(newPassword)
+	if bcryptErr != nil {
+		fail(w, types.ErrInternalServer)
+		return
+	}
+
+	if dbErr := a.Database.ActivateUserPassword(userId, hash); dbErr != nil {
+		fail(w, dbErr)
+		return
+	}
+
+	ok(w, 200, "account activated successfully", nil)
+}
 
 // =========================================================================
 // HELPER FUNCTIONS
@@ -193,7 +281,9 @@ func loadPayload(dst any, body io.ReadCloser) types.ErrorApi {
 		fieldType := typ.Field(i)
 
 		if fieldVal.Kind() == reflect.Pointer {
-			if fieldVal.IsNil() {
+			if fieldVal.IsNil() ||
+				fieldVal.Elem().Kind() == reflect.String && fieldVal.Elem().String() == "" {
+
 				jsonTag := fieldType.Tag.Get("json")
 				if jsonTag == "" || jsonTag == "-" {
 					jsonTag = fieldType.Name

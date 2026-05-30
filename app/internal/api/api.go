@@ -9,7 +9,6 @@ import (
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/nkdm1/bazy/internal/database"
 
-	_ "github.com/go-sql-driver/mysql"
 )
 
 func (a *Api) Mount() http.Handler {
@@ -25,7 +24,9 @@ func (a *Api) Mount() http.Handler {
 
 	r.Route("/", func(r chi.Router) {
 		r.Post("/login", a.login)
-		r.Get("/status", a.status)
+		r.With(a.authorize).Get("/status", a.status)
+		r.Post("/register", a.register)
+		r.Post("/register/confirm", a.registerConfirm)
 	})
 	return r
 }
