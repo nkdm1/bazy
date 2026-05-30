@@ -2,23 +2,25 @@ package database
 
 import (
 	"context"
+	"database/sql"
 	"errors"
 	"log"
+	"time"
 
 	"github.com/nkdm1/bazy/internal/types"
 )
 
 type Match struct {
-	ID              int
-	MatchStart      time.Time
-	MatchEnd        time.Time
-	LevelOfMatch    int
-	VenueID         int
-	HomeTeamID      int
-	AwayTeamID      int
-	Status          string
-	HomeTeamPoints  sql.NullInt64
-	AwayTeamPoints  sql.NullInt64
+	ID             int
+	MatchStart     time.Time
+	MatchEnd       time.Time
+	LevelOfMatch   int
+	VenueID        int
+	HomeTeamID     int
+	AwayTeamID     int
+	Status         string
+	HomeTeamPoints sql.NullInt64
+	AwayTeamPoints sql.NullInt64
 }
 
 // GetMatchesForUpcomingWeek queries the 'matches' table for all matches
