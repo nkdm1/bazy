@@ -8,12 +8,11 @@ import (
 func TestCheckRefereeAvailability(t *testing.T) {
 	db := testDB(t)
 
-	// Seed wstawił dostępność sędziego 1 na 2026-06-20
-	availableDate := time.Date(2026, 6, 20, 0, 0, 0, 0, time.UTC)
-	unavailableDate := time.Date(2026, 6, 21, 0, 0, 0, 0, time.UTC)
-
 	t.Run("referee is available on given date", func(t *testing.T) {
-		available, apiErr := db.CheckRefereeAvailability(1, availableDate)
+		available, apiErr := db.CheckRefereeAvailability(
+			testReferee.ID,
+			testAvailability.AvailableDate,
+		)
 
 		if apiErr != nil {
 			t.Fatalf("expected no error, got: %v", apiErr)
@@ -24,7 +23,10 @@ func TestCheckRefereeAvailability(t *testing.T) {
 	})
 
 	t.Run("referee is not available on different date", func(t *testing.T) {
-		available, apiErr := db.CheckRefereeAvailability(1, unavailableDate)
+		available, apiErr := db.CheckRefereeAvailability(
+			testReferee.ID,
+			testAvailability.AvailableDate.Add(time.Hour*24),
+		)
 
 		if apiErr != nil {
 			t.Fatalf("expected no error, got: %v", apiErr)
@@ -35,7 +37,10 @@ func TestCheckRefereeAvailability(t *testing.T) {
 	})
 
 	t.Run("non-existent referee returns false", func(t *testing.T) {
-		available, apiErr := db.CheckRefereeAvailability(999, availableDate)
+		available, apiErr := db.CheckRefereeAvailability(
+			testReferee.ID+1000,
+			testAvailability.AvailableDate,
+		)
 
 		if apiErr != nil {
 			t.Fatalf("expected no error, got: %v", apiErr)
