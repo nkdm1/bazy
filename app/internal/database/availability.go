@@ -12,7 +12,7 @@ import (
 // CheckRefereeAvailability checks if a specific referee has marked themselves
 // as available on a given date by querying the 'availability' table.
 func (db *Database) CheckRefereeAvailability(refereeID int, date time.Time) (bool, types.ErrorApi) {
-	row := db.queryRow(`
+	row, cancel := db.queryRow(`
 		SELECT EXISTS (
 			SELECT 1
 			FROM availability
@@ -20,6 +20,7 @@ func (db *Database) CheckRefereeAvailability(refereeID int, date time.Time) (boo
 				AND available_date = ?
 		);
 	`, refereeID, date.Format("2006-01-02"))
+	defer cancel()
 
 	var canBeAssigned bool
 	if err := row.Scan(&canBeAssigned); err != nil {

@@ -10,7 +10,7 @@ import (
 
 // MarkMatchAsCompleted updates the status of a match to 'completed' by its ID.
 func (db *Database) MarkMatchAsCompleted(matchID int) types.ErrorApi {
-	result, err := db.instance.Exec(`
+	result, err := db.exec(`
 		UPDATE matches
 		SET status = 'completed'
 		WHERE id = ?

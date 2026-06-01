@@ -18,8 +18,8 @@ func TestGetMonthlyPayoutBudget(t *testing.T) {
 		}
 
 		// Seed wstawił dokładnie 150.00
-		if budget.TotalAmount != 150.00 {
-			t.Errorf("expected 150.00, got: %.2f", budget.TotalAmount)
+		if budget != testPayout.Amount {
+			t.Errorf("expected 150.00, got: %.2f", budget)
 		}
 	})
 
@@ -31,8 +31,8 @@ func TestGetMonthlyPayoutBudget(t *testing.T) {
 		}
 
 		// Brak wypłat w styczniu → COALESCE zwraca 0
-		if budget.TotalAmount != 0 {
-			t.Errorf("expected 0.00, got: %.2f", budget.TotalAmount)
+		if budget != 0 {
+			t.Errorf("expected 0.00, got: %.2f", budget)
 		}
 	})
 }

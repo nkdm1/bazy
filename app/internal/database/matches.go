@@ -26,7 +26,7 @@ type Match struct {
 // GetMatchesForUpcomingWeek queries the 'matches' table for all matches
 // scheduled between now and the next 7 days.
 func (db *Database) GetMatchesForUpcomingWeek() ([]Match, types.ErrorApi) {
-	rows, err := db.query(`
+	rows, cancel, err := db.query(`
 		SELECT
 			id,
 			match_start,
@@ -42,6 +42,8 @@ func (db *Database) GetMatchesForUpcomingWeek() ([]Match, types.ErrorApi) {
 		WHERE match_start BETWEEN NOW() AND DATE_ADD(NOW(), INTERVAL 7 DAY)
 			AND status = 'scheduled';
 	`)
+	defer cancel()
+
 	if err != nil {
 		switch {
 		case errors.Is(err, context.DeadlineExceeded):

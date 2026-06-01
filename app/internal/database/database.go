@@ -25,7 +25,6 @@ func (db *Database) exec(query string, args ...any) (sql.Result, error) {
 }
 func (db *Database) query(query string, args ...any) (*sql.Rows, context.CancelFunc, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), db.timeout)
-	defer cancel()
 
 	rows, err := db.instance.QueryContext(ctx, query, args...)
 	return rows, cancel, err
