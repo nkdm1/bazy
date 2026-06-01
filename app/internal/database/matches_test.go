@@ -1,7 +1,10 @@
 package database
 
 import (
+	"errors"
 	"testing"
+
+	"github.com/nkdm1/bazy/internal/types"
 )
 
 func TestGetMatchesForUpcomingWeek(t *testing.T) {
@@ -33,4 +36,28 @@ func TestGetMatchesForUpcomingWeek(t *testing.T) {
 		t.Errorf("unexpected team IDs: home=%d away=%d",
 			matches[0].HomeTeamID, matches[0].AwayTeamID)
 	}
+}
+
+func TestMarkMatchAsCompleted(t *testing.T) {
+	db := testDB(t)
+
+	t.Run("successfully marks a scheduled match as completed", func(t *testing.T) {
+		err := db.MarkMatchAsCompleted(testMatchUpcoming.ID)
+		if err != nil {
+			t.Fatalf("expected no error, got: %v", err)
+		}
+	})
+
+	t.Run("returns ErrNotFound for non-existent match ID", func(t *testing.T) {
+		nonExistentID := 99999
+		err := db.MarkMatchAsCompleted(nonExistentID)
+		if err == nil {
+			t.Fatal("expected an error, got nil")
+		}
+
+		// Verifies it returns the correct API error definition
+		if !errors.Is(err, types.ErrNotFound) {
+			t.Errorf("expected a not found error configuration, got: %v", err)
+		}
+	})
 }
