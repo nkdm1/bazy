@@ -1,0 +1,8 @@
+Backend receives data from administrator-licence_id-decision (approved / rejected)
+if decision matches 'approve': 
+ 	- update status to 'verified' in licence table 
+	- update profile status in referees table to 'Active for assignments' 
+	- return ok 
+else: 
+	- update status to 'rejected' in licence table 
+	- return error

@@ -1,0 +1,8 @@
+1. Backend receives POST request from observer/admin with data:
+-referee_id
+-match_id
+-rating
+-created_by (admin_id)
+2. validate match status is ‘Finished'
+3. write record to reviews table:-set referee_id, match_id, rating, created_by, and created_at timestamp
+4. return ok
