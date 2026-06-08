@@ -1,0 +1,6 @@
+1. backend receives DELETE request with data:
+-auth_token
+-availability_date
+2. verify availability_id belongs to the logged-in referee
+3. delete record from availability table
+4. return ok

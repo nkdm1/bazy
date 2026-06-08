@@ -1,0 +1,7 @@
+1. backend receives POST request with data:
+-match_id
+2. verify match entry exists in matches table and status is marked as finished
+3. fetch base fee from wages table using match_level_id 
+4. write billing data to payouts table:
+-set referee_id, match_id, wages_id, amount
+5. return ok

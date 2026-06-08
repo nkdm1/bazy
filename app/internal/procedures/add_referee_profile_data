@@ -1,0 +1,11 @@
+1. Backend receives POST request with data:
+-auth_token
+-phone
+-postcode
+-city
+-street
+-flat_number
+2. write address data into address table and retrieve address_id
+3. update referees table: -set address_id -set phone number
+4. return ok
+

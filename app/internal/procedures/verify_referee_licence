@@ -1,0 +1,18 @@
+1. Backend receives POST request with data:
+      -auth_token
+      -referee_id
+      -licencense_number
+2. Validate that all requirements are met
+
+if all requirements are met:
+	-let user go forward with request
+	-decision is approved
+else:
+	-disable going forward and require filling out missing information
+3. Request is sent to administrator 
+If administrator approves:
+	-account is set as active with a license id
+If administrator disapproves:
+	-account stays as an user
+	-decision is rejected
+	-error is returned to the user
