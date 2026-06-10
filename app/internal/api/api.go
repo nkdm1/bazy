@@ -8,7 +8,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/nkdm1/bazy/internal/database"
-
 )
 
 func (a *Api) Mount() http.Handler {
@@ -24,9 +23,11 @@ func (a *Api) Mount() http.Handler {
 
 	r.Route("/", func(r chi.Router) {
 		r.Post("/login", a.login)
-		r.With(a.authorize).Get("/status", a.status)
-		r.Post("/register", a.register)
-		r.Post("/register/confirm", a.registerConfirm)
+		r.Get("/status", a.status)
+		r.Route("/register", func(r chi.Router) {
+			r.Post("/", a.register)
+			r.Post("/confirm", a.registerConfirm)
+		})
 	})
 	return r
 }

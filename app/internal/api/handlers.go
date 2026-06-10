@@ -256,7 +256,6 @@ func fail(w http.ResponseWriter, err types.ErrorApi) {
 // loadPayload loads the payload from `body` to `dst` structure
 func loadPayload(dst any, body io.ReadCloser) types.ErrorApi {
 	decoder := json.NewDecoder(body)
-	decoder.DisallowUnknownFields()
 
 	if err := decoder.Decode(dst); err != nil {
 		if _, found := errors.AsType[*http.MaxBytesError](err); found {
