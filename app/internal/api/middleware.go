@@ -11,7 +11,7 @@ import (
 
 type contextKey string
 
-const UserIDKey contextKey = "userId"
+const UserIdKey contextKey = "userId"
 
 func (a *Api) authorize(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +37,7 @@ func (a *Api) authorize(next http.Handler) http.Handler {
 			return
 		}
 
-		ctx := context.WithValue(r.Context(), UserIDKey, userId)
+		ctx := context.WithValue(r.Context(), UserIdKey, userId)
 
 		next.ServeHTTP(w, r.WithContext(ctx))
 	})

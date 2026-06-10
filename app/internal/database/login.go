@@ -83,7 +83,7 @@ func (db *Database) CreatePendingUser(email, name, surname string) (int, types.E
 	return int(id), nil
 }
 
-// CreateNewPassword() securely hashes the token before saving it to the set_password table.
+// CreateNewPassword() securely generates a new token and saves it to the set_password table.
 // Returns the token in a hex format.
 func (db *Database) CreateNewPassword(userId int) (string, types.ErrorApi) {
 	token, apiErr := misc.GenerateToken()
@@ -104,12 +104,18 @@ func (db *Database) CreateNewPassword(userId int) (string, types.ErrorApi) {
 	return hex.EncodeToString(token), nil
 }
 
-func (db *Database) GetUserByEmail(email string) (int, types.ErrorApi) {
+func (db *Database) GetUserByAuth(tokenHex string) (int, types.ErrorApi) {
+	plainTokenBytes, err := hex.DecodeString(tokenHex)
+	if err != nil {
+		return -1, types.ErrInvalidToken
+	}
+	tokenHashBytes := sha256.Sum256(plainTokenBytes)
+	tokenHash := hex.EncodeToString(tokenHashBytes[:])
 	row, cancel := db.queryRow(`
-		SELECT id 
-		FROM users
-		WHERE email = ?
-	`, email)
+		SELECT user_id 
+		FROM auth_tokens 
+		WHERE token_hash = ?
+	`, tokenHash)
 	defer cancel()
 
 	var id int
@@ -128,10 +134,34 @@ func (db *Database) GetUserByEmail(email string) (int, types.ErrorApi) {
 	return id, nil
 
 }
+func (db *Database) GetUserByEmail(email string) (int, types.ErrorApi) {
+	row, cancel := db.queryRow(`
+		SELECT id 
+		FROM users
+		WHERE email = ?
+	`, email)
+	defer cancel()
 
-// ConsumeRegistrationToken looks up the token hash. If valid, it deletes it
+	var id int
+	if err := row.Scan(&id); err != nil {
+		switch {
+		case errors.Is(err, sql.ErrNoRows):
+			return -1, types.ErrInvalidEmailOrPassword
+		case errors.Is(err, context.DeadlineExceeded):
+			log.Printf("[ERROR]: Database timeout during GetUserByEmail: %v", err)
+			return -1, types.ErrTimeout
+		default:
+			log.Printf("[ERROR]: Database failure during GetUserByEmail: %v", err)
+			return -1, types.ErrInternalServer
+		}
+	}
+	return id, nil
+
+}
+
+// ConsumeSetPasswordToken looks up the token hash. If valid, it deletes it
 // to prevent reuse (preventing replay attacks) and returns the associated user ID.
-func (db *Database) ConsumeRegistrationToken(tokenHash string) (int, types.ErrorApi) {
+func (db *Database) ConsumeSetPasswordToken(tokenHash string) (int, types.ErrorApi) {
 	row, cancel := db.queryRow(`
 		SELECT user_id
 		FROM set_password 
@@ -168,9 +198,8 @@ func (db *Database) ConsumeRegistrationToken(tokenHash string) (int, types.Error
 	return userId, nil
 }
 
-// ActivateUserPassword updates the pending user's record with their bcrypt hash,
-// formally completing their registration.
-func (db *Database) ActivateUserPassword(userId int, bcryptHash string) types.ErrorApi {
+// UpdateUserPassword updates user's profile with new bcrypt password hash
+func (db *Database) UpdateUserPassword(userId int, bcryptHash string) types.ErrorApi {
 	_, err := db.exec(`
 		UPDATE users 
 		SET password_hash = ? 

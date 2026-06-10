@@ -46,7 +46,7 @@ func (a *Api) login(w http.ResponseWriter, r *http.Request) {
 
 	// call database via a.Database methods
 	// create these methods yourself in internal/database/<filename>.go
-	userId, hash, dbErr := a.Database.GetPasswordHash(email)
+	userId, hash, dbErr := a.Database.GetPasswordHash(email) // TODO: change so password is taken from auth token and user id is taken from func GetUserByEmail()
 	if dbErr != nil {
 		fail(w, dbErr)
 		return
@@ -113,6 +113,26 @@ func (a *Api) status(w http.ResponseWriter, r *http.Request) {
 	ok(w, http.StatusOK, "ok", nil)
 }
 
+func (a *Api) requestNewPassword(w http.ResponseWriter, r *http.Request) {
+	userId := r.Context().Value(UserIdKey).(int)
+
+	tokenHex, err := a.Database.CreateNewPassword(userId)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	response := new(struct {
+		FakeEmailMessage map[string]any `json:"fake_email_message"`
+		NextStep         string         `json:"next_step"`
+	})
+	response.FakeEmailMessage = map[string]any{
+		"token": tokenHex,
+	}
+	response.NextStep = "/user/changePassword/confirm"
+
+	ok(w, 200, "confirm new password", response)
+}
+
 // wip
 func (a *Api) register(w http.ResponseWriter, r *http.Request) {
 	payload := new(struct {
@@ -146,27 +166,29 @@ func (a *Api) register(w http.ResponseWriter, r *http.Request) {
 		fail(w, err)
 		return
 	}
-	token, err := a.Database.CreateNewPassword(userId)
+
+	tokenHex, err := a.Database.CreateNewPassword(userId)
 	if err != nil {
 		fail(w, err)
 		return
 	}
+
 	response := new(struct {
 		FakeEmailMessage string `json:"fake_email_message"`
 		NextStep         string `json:"next_step"`
 	})
-	response.FakeEmailMessage = token
+	response.FakeEmailMessage = tokenHex
 	response.NextStep = "/register/confirm"
 
 	ok(w, 200, "confirm your email", response)
 }
 
-func (a *Api) registerConfirm(w http.ResponseWriter, r *http.Request) {
+func (a *Api) updatePassword(w http.ResponseWriter, r *http.Request) {
 	payload := new(struct {
 		Token       *string `json:"token"`
 		NewPassword *string `json:"new_password"`
 	})
-	
+
 	if err := loadPayload(payload, r.Body); err != nil {
 		fail(w, err)
 		return
@@ -184,7 +206,7 @@ func (a *Api) registerConfirm(w http.ResponseWriter, r *http.Request) {
 	tokenHashBytes := sha256.Sum256(plainTokenBytes)
 	tokenHash := hex.EncodeToString(tokenHashBytes[:])
 
-	userId, dbErr := a.Database.ConsumeRegistrationToken(tokenHash)
+	userId, dbErr := a.Database.ConsumeSetPasswordToken(tokenHash)
 	if dbErr != nil {
 		fail(w, dbErr)
 		return
@@ -196,12 +218,12 @@ func (a *Api) registerConfirm(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if dbErr := a.Database.ActivateUserPassword(userId, hash); dbErr != nil {
+	if dbErr := a.Database.UpdateUserPassword(userId, hash); dbErr != nil {
 		fail(w, dbErr)
 		return
 	}
 
-	ok(w, 200, "account activated successfully", nil)
+	ok(w, 200, "password updated successfully, you can now log in", nil)
 }
 
 // =========================================================================
@@ -256,6 +278,7 @@ func fail(w http.ResponseWriter, err types.ErrorApi) {
 // loadPayload loads the payload from `body` to `dst` structure
 func loadPayload(dst any, body io.ReadCloser) types.ErrorApi {
 	decoder := json.NewDecoder(body)
+	decoder.DisallowUnknownFields()
 
 	if err := decoder.Decode(dst); err != nil {
 		if _, found := errors.AsType[*http.MaxBytesError](err); found {
