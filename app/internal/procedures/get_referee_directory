@@ -1,0 +1,10 @@
+1. Backend receives GET request with data:
+- auth_token (must belong to an admin)
+2. Verify that the auth_token belongs to an admin.
+3. Query the `referees` table and join it with the `users` table (for personal info) and the `address` table (for location info).
+4. Select the relevant columns:
+- first name and surname
+- email
+- phone number
+- city, postcode, and full street address
+5. Return the comprehensive array of referee profiles to the admin.

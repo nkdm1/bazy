@@ -1,0 +1,12 @@
+1. Backend receives POST request with data:
+- auth_token (must belong to an admin)
+- referee_ids: A list of referee IDs (integers)
+2. Verify that the auth_token belongs to an admin.
+3. For each `referee_id` in the list, query the `payouts` table by joining with `match_assignments`.
+   - Filter only payouts where `status` is 'pending' (explicitly ignore 'sent', 'paid', and 'failed').
+4. For each referee, sum their total pending amount and return the breakdown.
+5. Return an array of objects, where each object contains:
+   - referee_id
+   - referee name and email (joined from `referees` and `users`)
+   - total_pending_amount (sum of all 'pending' payouts)
+   - list of individual pending payout records (payout_id, match date, amount)

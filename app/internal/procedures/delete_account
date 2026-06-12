@@ -1,0 +1,8 @@
+1. Backend receives DELETE request with data:
+- auth_token
+2. Lookup `user_id` using the `auth_token` in the `auth_tokens` table.
+3. Update the `users` table where `id` matches `user_id`:
+- set `deleted_at` to the current timestamp (NOW())
+4. Update the `auth_tokens` table for this `user_id`:
+- invalidate or delete all active session tokens so the user is logged out immediately.
+5. Return ok.

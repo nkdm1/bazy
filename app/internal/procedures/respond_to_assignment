@@ -1,0 +1,8 @@
+1. Backend receives POST request with data:
+- auth_token
+- assignment_id
+- response_status ('accepted' or 'declined')
+2. Lookup `user_id` from `auth_token`, then lookup `referee_id` from `referees` table.
+3. Verify that the `assignment_id` belongs to this specific `referee_id` and is currently 'pending'.
+4. Update `match_assignments` table: set `assignment_status` to the provided `response_status`.
+5. Return ok.

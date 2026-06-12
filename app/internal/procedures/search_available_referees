@@ -1,0 +1,7 @@
+1. Backend receives GET request with data:
+- auth_token (must belong to an admin)
+- search_date (in YYYY-MM-DD format)
+2. Query the `availability` table for the specified `search_date`.
+3. Join the `availability` records with the `referees` and `users` tables to fetch the personal details (name, surname, email, phone) of the available referees.
+4. Join with `match_assignments` and `matches` to filter out any referees who already have an 'accepted' or 'pending' match assignment on the exact same `search_date`.
+5. Return the filtered list of available referees to the admin.

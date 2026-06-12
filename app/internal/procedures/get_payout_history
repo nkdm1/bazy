@@ -1,0 +1,13 @@
+1. Backend receives GET request with data:
+- auth_token
+2. Lookup `user_id` from `auth_token`, then lookup `referee_id` from the `referees` table.
+3. Query the `payouts` table joined with `match_assignments`, `matches`, `teams`, and `wages` for this specific `referee_id`.
+4. Select and format the relevant data for each record:
+- Match date and time
+- Home team name vs Away team name
+- Role played (from `match_assignments`)
+- Fee amount (from `payouts` and `wages`)
+- Payout status ('pending', 'sent', 'paid')
+- Bank transaction ID (if applicable)
+- Paid_at timestamp
+5. Return the list of payout records to the user.

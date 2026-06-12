@@ -1,0 +1,8 @@
+1. Backend receives POST request with data:
+- auth_token
+- assignment_id
+2. Lookup `user_id` from `auth_token` in the `auth_tokens` table, then lookup `referee_id` in the `referees` table.
+3. Verify that the `assignment_id` in the `match_assignments` table belongs to this `referee_id` and the `assignment_status` is currently 'accepted'.
+4. Update the `match_assignments` table:
+- set `assignment_status` to 'cancelled'
+5. Return ok.

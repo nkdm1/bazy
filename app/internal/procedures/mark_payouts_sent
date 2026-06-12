@@ -1,0 +1,8 @@
+1. Backend receives POST request with data:
+- auth_token (must belong to an admin)
+- referee_ids: A list of referee IDs (integers)
+2. Verify that the auth_token belongs to an admin.
+3. For each `referee_id` in the list, query `match_assignments` to get the assignment IDs belonging to that referee.
+4. Update the `payouts` table for all payouts linked to those assignment IDs where the current `status` is 'pending':
+   - set `status` to 'sent'
+5. Return ok along with the count of payout records updated per referee.

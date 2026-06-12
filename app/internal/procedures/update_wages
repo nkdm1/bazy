@@ -1,0 +1,14 @@
+1. Backend receives POST request with data:
+- auth_token (must belong to an admin)
+- match_level (string)
+- match_role (string)
+- new_fee (decimal)
+2. Verify that the auth_token belongs to an admin.
+3. Lookup `level_id` from `matches_level` table using `match_level`.
+4. Lookup `role_id` from `role_in_match` table using `match_role`.
+5. Insert a new record into the `wages` table:
+- set `match_level` to `level_id`
+- set `role_in_match` to `role_id`
+- set `fee` to `new_fee`
+- set `valid_from` to the current date (CURDATE())
+6. Return ok.

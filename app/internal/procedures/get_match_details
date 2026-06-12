@@ -1,0 +1,8 @@
+1. Backend receives GET request with data:
+- match_id (typically via URL path parameter)
+2. Query the `matches` table for the specific `match_id`.
+3. Join with the `teams` table (twice) to fetch the names of both the home team and away team.
+4. Join with the `venues` and `address` tables to retrieve the full location details (gym name, city, postcode, street).
+5. Join with the `matches_level` table to get the level of the match.
+6. Query the `match_assignments` table for this `match_id` where `assignment_status` is 'accepted'. Join this with the `referees`, `users`, and `role_in_match` tables to compile a list of the assigned officiating crew (names and roles).
+7. Return the aggregated data as a single comprehensive match object to the client.

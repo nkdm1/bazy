@@ -1,0 +1,5 @@
+1. Backend receives POST request with data:
+- auth_token
+2. Lookup the `auth_token` record in the `auth_tokens` table.
+3. Delete (or invalidate) that specific token record from the `auth_tokens` table so it can no longer be used for authenticated requests.
+4. Return ok.

@@ -1,0 +1,11 @@
+1. Backend receives GET request with data:
+- auth_token (must belong to an admin)
+- match_id (via URL path parameter)
+2. Verify that the auth_token belongs to an admin.
+3. Query the `match_assignments` table for all records where `match_id` matches (all statuses: pending, accepted, declined, cancelled, noshow).
+4. Join with the `referees`, `users`, and `role_in_match` tables to retrieve referee name, email, and their assigned role for each record.
+5. Return the full array of assignment audit records, including:
+   - assignment_id
+   - referee name and email
+   - assigned role
+   - assignment_status

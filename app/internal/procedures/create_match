@@ -1,0 +1,16 @@
+1. Backend receives POST request with data:
+- auth_token (must belong to an admin)
+- home_team_name
+- away_team_name
+- venue_name
+- match_level
+- match_start (timestamp)
+- match_end (timestamp)
+2. Lookup `home_team_id` and `away_team_id` from `teams` table using the team names.
+3. Lookup `venue_id` from `venues` table using `venue_name`.
+4. Lookup `level_id` from `matches_level` table using `match_level`.
+5. Write data into `matches` table:
+- set home_team_id, away_team_id, venue_id, level_of_match
+- set match_start and match_end
+- set status to 'scheduled'
+6. Return ok.

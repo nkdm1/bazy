@@ -1,0 +1,17 @@
+1. Backend receives POST request with data:
+- auth_token (must belong to an admin)
+- referee_email
+- home_team_name
+- away_team_name
+- match_date
+- role
+2. Lookup `user_id` using `referee_email`, then lookup `referee_id` from `referees` table using `user_id`.
+3. Lookup `home_team_id` and `away_team_id` from `teams` table using the team names.
+4. Lookup `match_id` from `matches` table using `home_team_id`, `away_team_id`, and `match_date`.
+5. Lookup `role_id` from `role_in_match` table using `role` string.
+6. Write assignment data into `match_assignments` table:
+- set referee_id
+- set match_id
+- set role (role_id)
+- set assignment_status to 'pending'
+7. Return ok

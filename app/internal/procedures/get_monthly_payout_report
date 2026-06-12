@@ -1,0 +1,15 @@
+1. Backend receives GET request with data:
+- auth_token (must belong to an admin)
+- year (integer)
+- month (integer, 1-12)
+2. Verify that the auth_token belongs to an admin.
+3. Query the `payouts` table where `paid_at` falls within the specified year and month, and `status` is 'paid'.
+4. Join with `match_assignments`, `referees`, and `users` to associate each payout with a referee's name and email.
+5. Aggregate the data per referee:
+   - calculate `total_paid` (SUM of `amount`) per referee
+   - count the number of matches paid for
+6. Also compute the overall total across all referees for that month.
+7. Return a report object containing:
+   - year and month
+   - total_monthly_expenditure
+   - per_referee breakdown (referee name, email, match count, total paid)

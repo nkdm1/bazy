@@ -1,0 +1,12 @@
+1. Backend receives GET request with data:
+- auth_token
+2. Lookup `user_id` from `auth_token` in the `auth_tokens` table.
+3. Lookup the user's personal info from the `users` table (name, surname, email).
+4. Lookup `referee_id` and phone from the `referees` table.
+5. Lookup the full address by joining the `address` table via `referees.address_id`.
+6. Query the `licenses` table for all licenses belonging to this `referee_id`. Join with `licenses_names` to retrieve the human-readable license name.
+7. Return a comprehensive profile object containing:
+   - name, surname, email
+   - phone
+   - full address (postcode, city, street, street_number, flat_number)
+   - list of licenses (license_number, license_name, issued_at, expire_at)

@@ -1,0 +1,9 @@
+1. Backend receives POST request with data:
+- auth_token (must belong to an admin)
+- match_id
+2. Verify that the auth_token belongs to an admin.
+3. Update the `matches` table where `id` matches `match_id` and the current `status` is 'scheduled':
+- set `status` to 'cancelled'
+4. Update the `match_assignments` table where `match_id` matches the canceled match:
+- set `assignment_status` to 'cancelled' (to notify referees that their assignment was pulled)
+5. Return ok.

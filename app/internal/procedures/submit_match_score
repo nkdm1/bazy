@@ -1,0 +1,15 @@
+1. Backend receives POST request with data:
+- auth_token
+- match_id
+- home_team_points (integer)
+- away_team_points (integer)
+2. Lookup `user_id` from `auth_token`, then lookup `referee_id` from `referees` table.
+3. Query `match_assignments` to verify that this `referee_id` is assigned to the `match_id` and holds the role of 'crew_chief'.
+4. Verify that the match status in the `matches` table is currently 'scheduled'.
+5. Update the `matches` table for this `match_id`:
+- set `home_team_points`
+- set `away_team_points`
+- set `status` to 'completed'
+6. Query `match_assignments` for all accepted referees on this match.
+7. For each accepted assignment, call the 'create_pending_payout' procedure internally to generate a new 'pending' payout record.
+8. Return ok.

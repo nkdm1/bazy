@@ -1,0 +1,5 @@
+1. Backend receives a GET request. (No authentication required, public endpoint).
+2. Query the `matches` table for records where `match_start` > NOW() and `status` is 'scheduled'.
+3. Join the results with the `teams` table (to retrieve home and away team names) and the `venues` table (to retrieve the gym name).
+4. For each match, query the `match_assignments` table joined with the `referees` and `users` tables to fetch the first name and surname of the referees whose `assignment_status` is 'accepted'.
+5. Return the array of upcoming matches, including their confirmed referee crews, to the client.

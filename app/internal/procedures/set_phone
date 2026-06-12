@@ -1,0 +1,28 @@
+1. backend receives data: 
+	- phone
+	- auth token
+2. validate phone (regex)
+3. lookup referee_id using the auth token
+4. generate a verification code 
+5. new record in 'set_phone' table:
+	- referee_id
+	- new_phone
+	- token_hash
+	- expire time 1h from now
+	- status pending 
+6. send the verification code to the new phone number (e.g., via SMS)
+7. backend receives data: 
+	- verification code (prolly a special long url get request)
+
+if code matches && is not expired && is not used && referee_id exists in 'referees' table: 
+	- write phone to 'referees' table
+	- change status to 'used' in 'set_phone' table
+	- return ok
+else if code matches && is not expired && is not used && referee_id not exists in 'referees' table: 
+	- change status to 'used' in 'set_phone' table
+	- return ok  
+else if code matches && is expired:
+	- change status to 'expired' in 'set_phone' table
+	- return error 
+else:
+	- return error

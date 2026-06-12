@@ -1,0 +1,7 @@
+1. Backend receives POST request with data:
+- auth_token (must belong to an admin)
+- assignment_id
+2. Verify that the auth_token belongs to an admin.
+3. Update the `match_assignments` table where `id` matches `assignment_id` and the current `assignment_status` is 'accepted':
+- set `assignment_status` to 'noshow'
+4. Return ok.

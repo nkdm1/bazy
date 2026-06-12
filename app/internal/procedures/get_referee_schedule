@@ -1,0 +1,7 @@
+1. Backend receives GET request with data:
+- auth_token
+2. Lookup `user_id` from `auth_token`, then lookup `referee_id` in the `referees` table.
+3. Query `match_assignments` table where `referee_id` matches and `assignment_status` is 'accepted'.
+4. Join with `matches` table to filter only for matches where `match_start` > NOW() (to only show upcoming matches).
+5. Join with `teams` (to get home and away names), `venues` (gym name), and `matches_level` (level name) to gather full match context.
+6. Return the detailed array of scheduled match assignments to the referee.

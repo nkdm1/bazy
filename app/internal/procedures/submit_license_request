@@ -1,0 +1,14 @@
+1. Backend receives POST request with data:
+- auth_token
+- license_number (string)
+- license_name (string)
+- accept (boolean - used to mock external provider response)
+2. Lookup `user_id` from `auth_token`, then lookup `referee_id` in the `referees` table.
+3. Simulate a verification request to an external provider (e.g., PZKosz or FIBA API) using the `accept` flag.
+4. If `accept` is true (verification successful):
+   - The mocked provider returns simulated `issued_at` and `expire_at` dates.
+   - Lookup `license_name_id` from the `licenses_names` table using the provided `license_name`.
+   - Insert a new record into the `licenses` table for this `referee_id` containing the `license_number`, `license_name_id`, `issued_at`, and `expire_at`.
+   - Return ok.
+5. If `accept` is false (verification failed):
+   - Return an error indicating that the license data is incorrect and could not be verified by the external provider.

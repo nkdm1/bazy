@@ -1,0 +1,10 @@
+1. Backend receives POST request with data:
+- auth_token (must belong to an admin)
+- name (string)
+- city (string)
+2. Verify that the auth_token belongs to an admin.
+3. Check if a team with the exact same name and city already exists in the `teams` table to prevent duplicates.
+4. Insert a new record into the `teams` table:
+- set `name`
+- set `city`
+5. Return ok.

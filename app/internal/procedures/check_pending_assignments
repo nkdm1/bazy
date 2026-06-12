@@ -1,0 +1,6 @@
+1. Backend receives GET request with data:
+- auth_token
+2. Lookup `user_id` from `auth_token`, then lookup `referee_id` from `referees` table.
+3. Query `match_assignments` table where `referee_id` matches and `assignment_status` is 'pending'.
+4. Join with `matches`, `teams`, `venues`, and `role_in_match` to fetch comprehensive details (home team name, away team name, match date, venue name, and assigned role).
+5. Return array of pending assignments to the referee.

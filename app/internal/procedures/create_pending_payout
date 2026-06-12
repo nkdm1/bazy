@@ -1,0 +1,15 @@
+1. This procedure is called internally by 'submit_match_score' for each accepted referee assignment on the just-completed match.
+2. Receives internally:
+   - assignment_id
+   - match_id
+   - role_id (from the assignment)
+   - level_of_match (from the match)
+3. Lookup the applicable wage by querying the `wages` table where `match_level` and `role_in_match` match, and selecting the row with the most recent `valid_from` date that is <= the match date.
+4. Insert a new record into the `payouts` table:
+   - set `assignment_id`
+   - set `wages_id` (from the resolved wage row)
+   - set `amount` (the `fee` from the resolved wage)
+   - set `status` to 'pending'
+5. Return the new payout ID.
+
+NOTE: 'submit_match_score' must call this procedure once per accepted referee assignment after marking the match as 'completed'.

@@ -1,0 +1,9 @@
+1. Backend receives GET request with data:
+- auth_token (must belong to an admin)
+- referee_email
+2. Verify that the auth_token belongs to an admin.
+3. Lookup `user_id` using `referee_email` in the `users` table, then lookup `referee_id` in the `referees` table.
+4. Query the `reviews` table where `referee_id` matches.
+5. Join the results with `matches`, `teams` (for home/away names), and `venues` to provide context for each rating.
+6. Calculate the average rating across all fetched reviews for this referee.
+7. Return the list of detailed review records and the calculated overall average rating.

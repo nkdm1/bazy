@@ -1,0 +1,15 @@
+1. Backend receives POST request with data:
+- auth_token (must belong to an admin)
+- gym_name
+- postcode
+- city
+- street
+- street_number
+- flat_number (optional)
+2. Verify that the auth_token belongs to an admin.
+3. Insert a new record into the `address` table using the provided address details.
+4. Retrieve the newly generated `address_id`.
+5. Insert a new record into the `venues` table:
+- set `gym_name`
+- set `address_id`
+6. Return ok.

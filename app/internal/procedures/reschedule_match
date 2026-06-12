@@ -1,0 +1,10 @@
+1. Backend receives POST request with data:
+- auth_token (must belong to an admin)
+- match_id
+- new_match_start (timestamp)
+- new_match_end (timestamp)
+2. Verify that the auth_token belongs to an admin.
+3. Update the `matches` table where `id` matches `match_id`:
+- set `match_start` to `new_match_start`
+- set `match_end` to `new_match_end`
+4. Return ok.

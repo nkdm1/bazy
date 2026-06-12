@@ -1,0 +1,12 @@
+1. Backend receives POST request with data:
+- auth_token (must belong to an admin)
+- transactions: A list of objects, where each object contains:
+  - payout_id (integer)
+  - bank_transaction_id (string)
+2. Verify that the auth_token belongs to an admin.
+3. For each object in the `transactions` list:
+   - Update the `payouts` table where `id` matches `payout_id`.
+   - set `bank_transaction_id` to the provided string.
+   - set `status` to 'paid'.
+   - set `paid_at` to the current timestamp.
+4. Return ok.

@@ -1,0 +1,9 @@
+1. Backend receives a GET request. (No authentication required, public endpoint).
+2. Query the `matches` table for records where the `status` is 'completed'.
+3. Join the results with the `teams` table (to retrieve home and away team names) and the `venues` table (to retrieve the gym name).
+4. Select the relevant data:
+- Match start and end timestamps
+- Home team name and Away team name
+- Final match score (`home_team_points` and `away_team_points`)
+- Venue name
+5. Return the array of past match results to the client.
