@@ -49,6 +49,10 @@ var (
 		Message: "unauthorized, log in to continue",
 		Status:  http.StatusUnauthorized,
 	}
+	ErrForbidden = &apiError{
+		Message: "forbidden access",
+		Status:  http.StatusForbidden,
+	}
 )
 
 type ErrMissingRequiredFields struct {
