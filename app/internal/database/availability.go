@@ -36,3 +36,41 @@ func (db *Database) CheckRefereeAvailability(refereeID int, date time.Time) (boo
 
 	return canBeAssigned, nil
 }
+
+func (db *Database) AddRefereeAvailability(refereeID int, date time.Time) types.ErrorApi {
+	_, err := db.exec(`
+		INSERT IGNORE INTO availability (referee_id, available_date)
+		VALUES (?, ?);
+	`, refereeID, date.Format("2006-01-02"))
+	
+	if err != nil {
+		switch {
+		case errors.Is(err, context.DeadlineExceeded):
+			log.Printf("[ERROR]: Database timeout while adding availability for referee %d: %v", refereeID, err)
+			return types.ErrTimeout
+		default:
+			log.Printf("[ERROR]: Database failure while adding availability for referee %d: %v", refereeID, err)
+			return types.ErrInternalServer
+		}
+	}
+	return nil
+}
+
+func (db *Database) RemoveRefereeAvailability(refereeID int, date time.Time) types.ErrorApi {
+	_, err := db.exec(`
+		DELETE FROM availability
+		WHERE referee_id = ? AND available_date = ?;
+	`, refereeID, date.Format("2006-01-02"))
+	
+	if err != nil {
+		switch {
+		case errors.Is(err, context.DeadlineExceeded):
+			log.Printf("[ERROR]: Database timeout while removing availability for referee %d: %v", refereeID, err)
+			return types.ErrTimeout
+		default:
+			log.Printf("[ERROR]: Database failure while removing availability for referee %d: %v", refereeID, err)
+			return types.ErrInternalServer
+		}
+	}
+	return nil
+}

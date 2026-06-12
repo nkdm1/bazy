@@ -24,10 +24,18 @@ func (a *Api) Mount() http.Handler {
 	r.Route("/", func(r chi.Router) {
 		r.Post("/login", a.login)
 		r.Get("/status", a.status)
+		r.Route("/forgotPassword", func(r chi.Router) {
+			r.Post("/", a.forgotPassword)
+			r.Post("/confirm", a.updatePassword)
+		})
 		r.Route("/user", func(r chi.Router) {
 			r.Use(a.authorize)
 			r.Get("/changePassword", a.requestNewPassword)
 			r.Post("/changePassword/confirm", a.updatePassword)
+			r.Post("/availability", a.addAvailability)
+			r.Delete("/availability", a.removeAvailability)
+			r.Post("/rate", a.rateRefereePerformance)
+			r.Post("/referee", a.setRefereeProfile)
 		})
 		r.Route("/register", func(r chi.Router) {
 			r.Post("/", a.register)

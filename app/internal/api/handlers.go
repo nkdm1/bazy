@@ -133,6 +133,43 @@ func (a *Api) requestNewPassword(w http.ResponseWriter, r *http.Request) {
 	ok(w, 200, "confirm new password", response)
 }
 
+func (a *Api) forgotPassword(w http.ResponseWriter, r *http.Request) {
+	payload := new(struct {
+		Email *string `json:"email"`
+	})
+	if err := loadPayload(payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	userId, err := a.Database.GetUserByEmail(*payload.Email)
+	if err != nil {
+		if err == types.ErrInvalidEmailOrPassword {
+			fail(w, types.ErrNotFound)
+		} else {
+			fail(w, err)
+		}
+		return
+	}
+
+	tokenHex, err := a.Database.CreateNewPassword(userId)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	
+	response := new(struct {
+		FakeEmailMessage map[string]any `json:"fake_email_message"`
+		NextStep         string         `json:"next_step"`
+	})
+	response.FakeEmailMessage = map[string]any{
+		"token": tokenHex,
+	}
+	response.NextStep = "/forgotPassword/confirm"
+
+	ok(w, 200, "check your email to reset password", response)
+}
+
 // wip
 func (a *Api) register(w http.ResponseWriter, r *http.Request) {
 	payload := new(struct {
@@ -226,9 +263,138 @@ func (a *Api) updatePassword(w http.ResponseWriter, r *http.Request) {
 	ok(w, 200, "password updated successfully, you can now log in", nil)
 }
 
+func (a *Api) addAvailability(w http.ResponseWriter, r *http.Request) {
+	userId := r.Context().Value(UserIdKey).(int)
+	refereeId, err := a.Database.GetRefereeIDByUserID(userId)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+
+	payload := new(struct {
+		Date *string `json:"date"`
+	})
+	if err := loadPayload(payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	parsedDate, parseErr := time.Parse("2006-01-02", *payload.Date)
+	if parseErr != nil {
+		fail(w, types.ErrInvalidPayload)
+		return
+	}
+
+	if err := a.Database.AddRefereeAvailability(refereeId, parsedDate); err != nil {
+		fail(w, err)
+		return
+	}
+
+	ok(w, http.StatusOK, "availability added", nil)
+}
+
+func (a *Api) removeAvailability(w http.ResponseWriter, r *http.Request) {
+	userId := r.Context().Value(UserIdKey).(int)
+	refereeId, err := a.Database.GetRefereeIDByUserID(userId)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+
+	payload := new(struct {
+		Date *string `json:"date"`
+	})
+	if err := loadPayload(payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	parsedDate, parseErr := time.Parse("2006-01-02", *payload.Date)
+	if parseErr != nil {
+		fail(w, types.ErrInvalidPayload)
+		return
+	}
+
+	if err := a.Database.RemoveRefereeAvailability(refereeId, parsedDate); err != nil {
+		fail(w, err)
+		return
+	}
+
+	ok(w, http.StatusOK, "availability removed", nil)
+}
+
+
+func (a *Api) rateRefereePerformance(w http.ResponseWriter, r *http.Request) {
+	userId := r.Context().Value(UserIdKey).(int)
+
+	payload := new(struct {
+		RefereeID *int `json:"referee_id"`
+		MatchID   *int `json:"match_id"`
+		Rating    *int `json:"rating"`
+	})
+	if err := loadPayload(payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	if err := a.Database.RateRefereePerformance(*payload.RefereeID, *payload.MatchID, *payload.Rating, userId); err != nil {
+		fail(w, err)
+		return
+	}
+
+	ok(w, http.StatusOK, "performance rated successfully", nil)
+}
+
 // =========================================================================
 // HELPER FUNCTIONS
 // =========================================================================
+
+func (a *Api) setRefereeProfile(w http.ResponseWriter, r *http.Request) {
+	userId := r.Context().Value(UserIdKey).(int)
+
+	role, err := a.Database.GetUserRole(userId)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	if role != "admin" {
+		fail(w, types.ErrForbidden)
+		return
+	}
+
+	payload := new(struct {
+		Email        *string `json:"email"`
+		Phone        *string `json:"phone"`
+		Postcode     *string `json:"postcode"`
+		City         *string `json:"city"`
+		Street       string  `json:"street"`
+		StreetNumber *string `json:"street_number"`
+		FlatNumber   string  `json:"flat_number"`
+	})
+	if err := loadPayload(payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	postcode := *payload.Postcode
+	if len(postcode) != 6 || postcode[2] != '-' {
+		fail(w, types.ErrInvalidPayload)
+		return
+	}
+
+	targetUserID, lookupErr := a.Database.GetUserByEmail(*payload.Email)
+	if lookupErr != nil {
+		fail(w, types.ErrNotFound)
+		return
+	}
+
+	if err := a.Database.SetUserAsReferee(targetUserID, *payload.Phone, postcode, *payload.City, payload.Street, *payload.StreetNumber, payload.FlatNumber); err != nil {
+		fail(w, err)
+		return
+	}
+
+	ok(w, http.StatusOK, "referee profile created", nil)
+}
 
 // ok writes a successful http response status code `status`
 // with `message` attached and, optionally, any `data` provided
