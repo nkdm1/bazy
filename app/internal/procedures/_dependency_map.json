@@ -44,7 +44,7 @@
     },
 
     "logout": {
-      "status": "pending",
+      "status": "done",
       "role": "authenticated",
       "depends_on": ["login"],
       "priority_layer": 2,
@@ -52,7 +52,7 @@
     },
 
     "delete_account": {
-      "status": "pending",
+      "status": "done",
       "role": "authenticated",
       "depends_on": ["login"],
       "priority_layer": 2,
@@ -108,7 +108,7 @@
     },
 
     "update_wages": {
-      "status": "pending",
+      "status": "done",
       "role": "admin",
       "depends_on": ["login"],
       "priority_layer": 2,
@@ -116,7 +116,7 @@
     },
 
     "create_team": {
-      "status": "pending",
+      "status": "done",
       "role": "admin",
       "depends_on": ["login"],
       "priority_layer": 2,
