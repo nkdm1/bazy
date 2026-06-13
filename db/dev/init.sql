@@ -193,3 +193,8 @@ ALTER TABLE `venues` ADD FOREIGN KEY (`address_id`) REFERENCES `address` (`id`);
 ALTER TABLE `referees` ADD FOREIGN KEY (`address_id`) REFERENCES `address` (`id`);
 
 ALTER TABLE `set_phone` ADD FOREIGN KEY (`referee_id`) REFERENCES `referees` (`id`);
+
+-- Seed default admin account
+INSERT INTO `users` (`email`, `password_hash`, `name`, `surname`, `role`)
+VALUES ('admin@example.com', '$2a$10$zQbLi91aj965XIngWNeXNOVbVOasn6om3Xpd2iUW5vtPe0yZDus1i', 'Admin', 'User', 'admin');
+
