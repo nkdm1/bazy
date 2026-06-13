@@ -589,6 +589,18 @@ func (a *Api) createMatch(w http.ResponseWriter, r *http.Request) {
 	ok(w, http.StatusCreated, "match created successfully", nil)
 }
 
+// getRefereeDirectory returns a list of all referee profiles with full details.
+func (a *Api) getRefereeDirectory(w http.ResponseWriter, r *http.Request) {
+	list, err := a.Database.GetRefereeDirectory()
+	if err != nil {
+		fail(w, err)
+		return
+	}
+
+	ok(w, http.StatusOK, "referee directory fetched successfully", list)
+}
+
+
 
 
 

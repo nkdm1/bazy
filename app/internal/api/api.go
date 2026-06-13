@@ -46,6 +46,7 @@ func (a *Api) Mount() http.Handler {
 			r.Post("/teams", a.createTeam)
 			r.Post("/venues", a.createVenue)
 			r.Post("/matches", a.createMatch)
+			r.Get("/referees", a.getRefereeDirectory)
 		})
 		r.Route("/register", func(r chi.Router) {
 			r.Post("/", a.register)

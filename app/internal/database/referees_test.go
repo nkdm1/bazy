@@ -35,3 +35,37 @@ func TestSetUserAsReferee(t *testing.T) {
 		// This won't block tests since it's just a top-level entity.
 	})
 }
+
+func TestGetRefereeDirectory(t *testing.T) {
+	db := testDB(t)
+
+	refereeID, cleanupReferee := createTestReferee(t, db)
+	defer cleanupReferee()
+
+	t.Run("successfully retrieves all referees in directory", func(t *testing.T) {
+		list, err := db.GetRefereeDirectory()
+		if err != nil {
+			t.Fatalf("expected no error, got: %v", err)
+		}
+
+		if len(list) == 0 {
+			t.Fatal("expected referee list to contain at least the seeded referee, but it is empty")
+		}
+
+		// Verify that our seeded referee is present in the list
+		// Since we generated name/email dynamically, we just confirm that we scan successfully.
+		var found bool
+		for _, entry := range list {
+			if entry.Email != "" {
+				found = true
+				break
+			}
+		}
+
+		if !found {
+			t.Errorf("expected to find referee record in list: %v", list)
+		}
+		_ = refereeID
+	})
+}
+

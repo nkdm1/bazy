@@ -83,3 +83,66 @@ func (db *Database) SetUserAsReferee(userID int, phone, postcode, city, street, 
 
 	return nil
 }
+
+type RefereeDirectoryEntry struct {
+	FirstName    string `json:"first_name"`
+	Surname      string `json:"surname"`
+	Email        string `json:"email"`
+	Phone        string `json:"phone"`
+	Postcode     string `json:"postcode"`
+	City         string `json:"city"`
+	Street       string `json:"street"`
+	StreetNumber string `json:"street_number"`
+	FlatNumber   string `json:"flat_number"`
+}
+
+// GetRefereeDirectory retrieves a list of all referees along with their user
+// information and address details.
+func (db *Database) GetRefereeDirectory() ([]RefereeDirectoryEntry, types.ErrorApi) {
+	rows, cancel, err := db.query(`
+		SELECT
+			u.name, u.surname, u.email, COALESCE(r.phone, ''),
+			a.postcode, a.city, COALESCE(a.street, ''), a.street_number, COALESCE(a.flat_number, '')
+		FROM referees r
+		JOIN users u ON r.user_id = u.id
+		JOIN address a ON r.address_id = a.id;
+	`)
+	defer cancel()
+
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			log.Printf("[ERROR]: Database timeout while fetching referee directory: %v", err)
+			return nil, types.ErrTimeout
+		}
+		log.Printf("[ERROR]: Database failure while fetching referee directory: %v", err)
+		return nil, types.ErrInternalServer
+	}
+	defer rows.Close()
+
+	var list []RefereeDirectoryEntry
+	for rows.Next() {
+		var entry RefereeDirectoryEntry
+		if err := rows.Scan(
+			&entry.FirstName,
+			&entry.Surname,
+			&entry.Email,
+			&entry.Phone,
+			&entry.Postcode,
+			&entry.City,
+			&entry.Street,
+			&entry.StreetNumber,
+			&entry.FlatNumber,
+		); err != nil {
+			log.Printf("[ERROR]: Failed to scan referee directory entry: %v", err)
+			return nil, types.ErrInternalServer
+		}
+		list = append(list, entry)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Printf("[ERROR]: Row iteration error while fetching referee directory: %v", err)
+		return nil, types.ErrInternalServer
+	}
+
+	return list, nil
+}
