@@ -85,8 +85,6 @@ func TestCreateMatch(t *testing.T) {
 	defer cleanupAway()
 	venueID, cleanupVenue := createTestVenue(t, db)
 	defer cleanupVenue()
-	levelID, cleanupLevel := createTestMatchLevel(t, db)
-	defer cleanupLevel()
 
 	t.Run("successfully inserts a match", func(t *testing.T) {
 		start := time.Now().Add(24 * time.Hour)
@@ -121,7 +119,7 @@ func TestCreateMatch(t *testing.T) {
 			t.Fatalf("failed GetVenueIDByName: %v, got %d, expected positive", err, vID)
 		}
 
-		err = db.CreateMatch(homeTeamID, awayTeamID, venueID, levelID, start, end)
+		err = db.CreateMatch(homeTeamID, awayTeamID, venueID, "okregowa", start, end)
 		if err != nil {
 			t.Fatalf("failed CreateMatch: %v", err)
 		}

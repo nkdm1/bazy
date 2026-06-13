@@ -152,11 +152,11 @@ func (db *Database) GetVenueIDByName(gymName string) (int, types.ErrorApi) {
 }
 
 // CreateMatch inserts a new scheduled match into the matches table.
-func (db *Database) CreateMatch(homeTeamID, awayTeamID, venueID, levelID int, start, end time.Time) types.ErrorApi {
+func (db *Database) CreateMatch(homeTeamID, awayTeamID, venueID int, levelOfMatch string, start, end time.Time) types.ErrorApi {
 	_, err := db.exec(`
 		INSERT INTO matches (home_team_id, away_team_id, venue_id, level_of_match, match_start, match_end, status)
 		VALUES (?, ?, ?, ?, ?, ?, 'scheduled');
-	`, homeTeamID, awayTeamID, venueID, levelID, start, end)
+	`, homeTeamID, awayTeamID, venueID, levelOfMatch, start, end)
 	if err != nil {
 		log.Printf("[ERROR]: Database failure inserting match: %v", err)
 		return types.ErrInternalServer

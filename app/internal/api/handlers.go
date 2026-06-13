@@ -426,9 +426,9 @@ func (a *Api) updateWages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	matchLevelID, err := a.Database.GetMatchLevelID(*payload.MatchLevel)
-	if err != nil {
-		fail(w, types.ErrNotFound)
+	level := *payload.MatchLevel
+	if level != "fiba" && level != "plk" && level != "centralna" && level != "okregowa" && level != "stazysta" {
+		fail(w, types.ErrInvalidPayload)
 		return
 	}
 
@@ -438,7 +438,7 @@ func (a *Api) updateWages(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := a.Database.InsertWage(matchLevelID, roleInMatchID, *payload.Fee); err != nil {
+	if err := a.Database.InsertWage(level, roleInMatchID, *payload.Fee); err != nil {
 		fail(w, err)
 		return
 	}
@@ -574,13 +574,13 @@ func (a *Api) createMatch(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	levelID, err := a.Database.GetMatchLevelID(*payload.MatchLevel)
-	if err != nil {
-		fail(w, err)
+	level := *payload.MatchLevel
+	if level != "fiba" && level != "plk" && level != "centralna" && level != "okregowa" && level != "stazysta" {
+		fail(w, types.ErrInvalidPayload)
 		return
 	}
 
-	err = a.Database.CreateMatch(homeTeamID, awayTeamID, venueID, levelID, start, end)
+	err = a.Database.CreateMatch(homeTeamID, awayTeamID, venueID, level, start, end)
 	if err != nil {
 		fail(w, err)
 		return
