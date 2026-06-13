@@ -1,7 +1,10 @@
 package database
 
 import (
+	"errors"
 	"testing"
+
+	"github.com/nkdm1/bazy/internal/types"
 )
 
 func TestSetUserAsReferee(t *testing.T) {
@@ -68,4 +71,39 @@ func TestGetRefereeDirectory(t *testing.T) {
 		_ = refereeID
 	})
 }
+
+func TestGetRefereeProfile(t *testing.T) {
+	db := testDB(t)
+
+	t.Run("successfully retrieves profile of a referee", func(t *testing.T) {
+		refereeID, cleanupReferee := createTestReferee(t, db)
+		defer cleanupReferee()
+
+		// Get the user ID from referee
+		var userID int
+		row, cancel := db.queryRow(`SELECT user_id FROM referees WHERE id = ?`, refereeID)
+		row.Scan(&userID)
+		cancel()
+
+		profile, err := db.GetRefereeProfile(userID)
+		if err != nil {
+			t.Fatalf("expected no error, got: %v", err)
+		}
+
+		if profile.Email == "" || profile.Name == "" || profile.Surname == "" {
+			t.Errorf("profile fields unexpectedly empty: %+v", profile)
+		}
+	})
+
+	t.Run("returns ErrNotFound for nonexistent user profile", func(t *testing.T) {
+		_, err := db.GetRefereeProfile(999999)
+		if err == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !errors.Is(err, types.ErrNotFound) {
+			t.Errorf("expected ErrNotFound, got %v", err)
+		}
+	})
+}
+
 

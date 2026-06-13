@@ -34,9 +34,14 @@ func (a *Api) Mount() http.Handler {
 			r.Delete("/", a.deleteAccount)
 			r.Get("/changePassword", a.requestNewPassword)
 			r.Post("/changePassword/confirm", a.updatePassword)
+			r.Post("/rate", a.rateRefereePerformance)
+		})
+		r.Route("/referee", func(r chi.Router) {
+			r.Use(a.authorize)
+			r.Use(a.refereeOnly)
 			r.Post("/availability", a.addAvailability)
 			r.Delete("/availability", a.removeAvailability)
-			r.Post("/rate", a.rateRefereePerformance)
+			r.Get("/profile", a.getRefereeProfile)
 		})
 		r.Route("/admin", func(r chi.Router) {
 			r.Use(a.authorize)

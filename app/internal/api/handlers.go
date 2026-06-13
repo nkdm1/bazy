@@ -600,6 +600,20 @@ func (a *Api) getRefereeDirectory(w http.ResponseWriter, r *http.Request) {
 	ok(w, http.StatusOK, "referee directory fetched successfully", list)
 }
 
+// getRefereeProfile fetches the profile data of the currently authenticated referee.
+func (a *Api) getRefereeProfile(w http.ResponseWriter, r *http.Request) {
+	userID := r.Context().Value(UserIdKey).(int)
+
+	profile, err := a.Database.GetRefereeProfile(userID)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+
+	ok(w, http.StatusOK, "referee profile fetched successfully", profile)
+}
+
+
 
 
 

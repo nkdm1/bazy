@@ -64,6 +64,32 @@ func (a *Api) adminOnly(next http.Handler) http.Handler {
 	})
 }
 
+// refereeOnly is a middleware that must be chained after authorize.
+// It reads the userId already stored in the context and verifies the user
+// holds the 'referee' role. Returns 403 Forbidden for any other role.
+func (a *Api) refereeOnly(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		userId, ok := r.Context().Value(UserIdKey).(int)
+		if !ok {
+			fail(w, types.ErrUnauthorized)
+			return
+		}
+
+		role, dbErr := a.Database.GetUserRole(userId)
+		if dbErr != nil {
+			fail(w, dbErr)
+			return
+		}
+		if role != "referee" {
+			fail(w, types.ErrForbidden)
+			return
+		}
+
+		next.ServeHTTP(w, r)
+	})
+}
+
+
 func (a *Api) limitBodySize(limit int64) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"log"
+	"time"
 
 	"github.com/nkdm1/bazy/internal/types"
 )
@@ -145,4 +146,101 @@ func (db *Database) GetRefereeDirectory() ([]RefereeDirectoryEntry, types.ErrorA
 	}
 
 	return list, nil
+}
+
+type LicenseEntry struct {
+	LicenseNumber string    `json:"license_number"`
+	LicenseName   string    `json:"license_name"`
+	IssuedAt      time.Time `json:"issued_at"`
+	ExpireAt      time.Time `json:"expire_at"`
+}
+
+type RefereeProfile struct {
+	Name         string         `json:"name"`
+	Surname      string         `json:"surname"`
+	Email        string         `json:"email"`
+	Phone        string         `json:"phone"`
+	Postcode     string         `json:"postcode"`
+	City         string         `json:"city"`
+	Street       string         `json:"street"`
+	StreetNumber string         `json:"street_number"`
+	FlatNumber   string         `json:"flat_number"`
+	Licenses     []LicenseEntry `json:"licenses"`
+}
+
+// GetRefereeProfile fetches full details for the given user, including their
+// personal data, referee address, and active licenses.
+func (db *Database) GetRefereeProfile(userID int) (*RefereeProfile, types.ErrorApi) {
+	row, cancel := db.queryRow(`
+		SELECT
+			u.name, u.surname, u.email, COALESCE(r.phone, ''),
+			a.postcode, a.city, COALESCE(a.street, ''), a.street_number, COALESCE(a.flat_number, ''),
+			r.id
+		FROM users u
+		JOIN referees r ON u.id = r.user_id
+		JOIN address a ON r.address_id = a.id
+		WHERE u.id = ? AND u.deleted_at IS NULL;
+	`, userID)
+	defer cancel()
+
+	var profile RefereeProfile
+	var refereeID int
+	if err := row.Scan(
+		&profile.Name,
+		&profile.Surname,
+		&profile.Email,
+		&profile.Phone,
+		&profile.Postcode,
+		&profile.City,
+		&profile.Street,
+		&profile.StreetNumber,
+		&profile.FlatNumber,
+		&refereeID,
+	); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, types.ErrNotFound
+		}
+		if errors.Is(err, context.DeadlineExceeded) {
+			log.Printf("[ERROR]: Database timeout while fetching referee profile %d: %v", userID, err)
+			return nil, types.ErrTimeout
+		}
+		log.Printf("[ERROR]: Database failure while fetching referee profile %d: %v", userID, err)
+		return nil, types.ErrInternalServer
+	}
+
+	// Fetch licenses
+	rows, cancelL, err := db.query(`
+		SELECT l.license_number, ln.license_name, l.issued_at, l.expire_at
+		FROM licenses l
+		JOIN licenses_names ln ON l.license_name_id = ln.id
+		WHERE l.referee_id = ?;
+	`, refereeID)
+	defer cancelL()
+
+	if err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			log.Printf("[ERROR]: Database timeout while fetching licenses for referee %d: %v", refereeID, err)
+			return nil, types.ErrTimeout
+		}
+		log.Printf("[ERROR]: Database failure while fetching licenses for referee %d: %v", refereeID, err)
+		return nil, types.ErrInternalServer
+	}
+	defer rows.Close()
+
+	profile.Licenses = []LicenseEntry{}
+	for rows.Next() {
+		var lic LicenseEntry
+		if err := rows.Scan(&lic.LicenseNumber, &lic.LicenseName, &lic.IssuedAt, &lic.ExpireAt); err != nil {
+			log.Printf("[ERROR]: Failed to scan license entry for referee %d: %v", refereeID, err)
+			return nil, types.ErrInternalServer
+		}
+		profile.Licenses = append(profile.Licenses, lic)
+	}
+
+	if err := rows.Err(); err != nil {
+		log.Printf("[ERROR]: Row iteration error while fetching licenses for referee %d: %v", refereeID, err)
+		return nil, types.ErrInternalServer
+	}
+
+	return &profile, nil
 }
