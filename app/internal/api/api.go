@@ -68,7 +68,10 @@ func (a *Api) Mount() http.Handler {
 			r.Post("/match/assignment/revoke", a.revokeAssignment)
 			r.Post("/assignment/noshow", a.markNoShow)
 			r.Get("/match/{match_id}/assignments", a.getMatchAssignmentHistory)
-			r.Get("/referees", a.getRefereeDirectory)
+			r.Get("/referee/directory", a.getRefereeDirectory)
+			r.Get("/referee/reviews", a.getRefereeReviews)
+			r.Post("/payouts/pending", a.getPendingPayouts)
+			r.Post("/payouts/sent", a.markPayoutsSent)
 			r.Get("/referees/available", a.searchAvailableReferees)
 		})
 		r.Route("/register", func(r chi.Router) {

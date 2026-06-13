@@ -1100,3 +1100,59 @@ func (a *Api) submitMatchScore(w http.ResponseWriter, r *http.Request) {
 
 	ok(w, http.StatusOK, "match score submitted", nil)
 }
+
+func (a *Api) getRefereeReviews(w http.ResponseWriter, r *http.Request) {
+	refereeIDStr := r.URL.Query().Get("referee_id")
+	if refereeIDStr == "" {
+		fail(w, types.ErrInvalidPayload)
+		return
+	}
+	refereeID, err := strconv.Atoi(refereeIDStr)
+	if err != nil {
+		fail(w, types.ErrInvalidPayload)
+		return
+	}
+
+	reviews, dbErr := a.Database.GetRefereeReviews(refereeID)
+	if dbErr != nil {
+		fail(w, dbErr)
+		return
+	}
+
+	ok(w, http.StatusOK, "referee reviews", reviews)
+}
+
+type PayloadRefereeIDs struct {
+	RefereeIDs []int `json:"referee_ids"`
+}
+
+func (a *Api) getPendingPayouts(w http.ResponseWriter, r *http.Request) {
+	var payload PayloadRefereeIDs
+	if err := loadPayload(&payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	payouts, dbErr := a.Database.GetPendingPayouts(payload.RefereeIDs)
+	if dbErr != nil {
+		fail(w, dbErr)
+		return
+	}
+
+	ok(w, http.StatusOK, "pending payouts", payouts)
+}
+
+func (a *Api) markPayoutsSent(w http.ResponseWriter, r *http.Request) {
+	var payload PayloadRefereeIDs
+	if err := loadPayload(&payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	if dbErr := a.Database.MarkPayoutsSent(payload.RefereeIDs); dbErr != nil {
+		fail(w, dbErr)
+		return
+	}
+
+	ok(w, http.StatusOK, "payouts marked as sent", nil)
+}

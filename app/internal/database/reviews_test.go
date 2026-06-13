@@ -33,3 +33,31 @@ func TestRateRefereePerformance(t *testing.T) {
 		}
 	})
 }
+
+func TestGetRefereeReviews(t *testing.T) {
+	db := testDB(t)
+
+	refereeID, cleanupRef := createTestReferee(t, db)
+	defer cleanupRef()
+
+	matchID1, _, _, cleanupMatch1 := createTestMatch(t, db, "completed", -2)
+	defer cleanupMatch1()
+
+	matchID2, _, _, cleanupMatch2 := createTestMatch(t, db, "completed", -1)
+	defer cleanupMatch2()
+
+	db.RateRefereePerformance(refereeID, matchID1, 4, 1)
+	db.RateRefereePerformance(refereeID, matchID2, 5, 1)
+
+	res, err := db.GetRefereeReviews(refereeID)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if res.AverageRating != 4.5 {
+		t.Errorf("expected average rating 4.5, got %v", res.AverageRating)
+	}
+	if len(res.Reviews) != 2 {
+		t.Errorf("expected 2 reviews, got %d", len(res.Reviews))
+	}
+}

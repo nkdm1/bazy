@@ -85,3 +85,75 @@ func TestGetTotalEarningsByRefereeID(t *testing.T) {
 		}
 	})
 }
+
+func TestGetPendingPayouts(t *testing.T) {
+	db := testDB(t)
+
+	refereeID, cleanupRef := createTestReferee(t, db)
+	defer cleanupRef()
+
+	matchID, _, _, cleanupMatch := createTestMatch(t, db, "completed", -10)
+	defer cleanupMatch()
+	assignID, cleanupAssign := createTestMatchAssignment(t, db, refereeID, matchID)
+	defer cleanupAssign()
+
+	payoutID, amount, cleanupPayout := createTestPayout(t, db, assignID, time.Time{})
+	defer cleanupPayout()
+	db.exec(`UPDATE payouts SET status = 'pending' WHERE id = ?`, payoutID)
+
+	payouts, apiErr := db.GetPendingPayouts([]int{refereeID})
+	if apiErr != nil {
+		t.Fatalf("expected no error, got: %v", apiErr)
+	}
+
+	if len(payouts) != 1 {
+		t.Fatalf("expected 1 payout, got %d", len(payouts))
+	}
+	if payouts[0].RefereeID != refereeID || payouts[0].Amount != amount {
+		t.Errorf("expected payout to be %f for ref %d, got %f for ref %d", amount, refereeID, payouts[0].Amount, payouts[0].RefereeID)
+	}
+
+	// Empty list
+	emptyPayouts, err := db.GetPendingPayouts([]int{})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if len(emptyPayouts) != 0 {
+		t.Errorf("expected 0 payouts, got %d", len(emptyPayouts))
+	}
+}
+
+func TestMarkPayoutsSent(t *testing.T) {
+	db := testDB(t)
+
+	refereeID, cleanupRef := createTestReferee(t, db)
+	defer cleanupRef()
+
+	matchID, _, _, cleanupMatch := createTestMatch(t, db, "completed", -10)
+	defer cleanupMatch()
+	assignID, cleanupAssign := createTestMatchAssignment(t, db, refereeID, matchID)
+	defer cleanupAssign()
+
+	payoutID, _, cleanupPayout := createTestPayout(t, db, assignID, time.Time{})
+	defer cleanupPayout()
+	db.exec(`UPDATE payouts SET status = 'pending' WHERE id = ?`, payoutID)
+
+	err := db.MarkPayoutsSent([]int{refereeID})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	var status string
+	row, cancel := db.queryRow(`SELECT status FROM payouts WHERE id = ?`, payoutID)
+	row.Scan(&status)
+	cancel()
+	if status != "sent" {
+		t.Errorf("expected status 'sent', got %s", status)
+	}
+
+	// Empty list
+	err = db.MarkPayoutsSent([]int{})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+}

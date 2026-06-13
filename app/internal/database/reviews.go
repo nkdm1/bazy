@@ -43,3 +43,57 @@ func (db *Database) RateRefereePerformance(refereeID, matchID, rating, createdBy
 
 	return nil
 }
+
+type ReviewInfo struct {
+	ID        int    `json:"id"`
+	RefereeID int    `json:"referee_id"`
+	MatchID   int    `json:"match_id"`
+	Rating    int    `json:"rating"`
+	CreatedAt string `json:"created_at"`
+	CreatedBy int    `json:"created_by"`
+}
+
+type RefereeReviews struct {
+	AverageRating float64      `json:"average_rating"`
+	Reviews       []ReviewInfo `json:"reviews"`
+}
+
+func (db *Database) GetRefereeReviews(refereeID int) (*RefereeReviews, types.ErrorApi) {
+	row, cancel := db.queryRow(`SELECT IFNULL(AVG(rating), 0) FROM reviews WHERE referee_id = ?`, refereeID)
+	var avgRating float64
+	err := row.Scan(&avgRating)
+	cancel()
+	if err != nil {
+		log.Printf("[ERROR]: Database failure fetching avg rating for referee %d: %v", refereeID, err)
+		return nil, types.ErrInternalServer
+	}
+
+	rows, cancelRows, err := db.query(`
+		SELECT id, match_id, rating, created_at, created_by 
+		FROM reviews 
+		WHERE referee_id = ?
+		ORDER BY created_at DESC
+	`, refereeID)
+	defer cancelRows()
+	if err != nil {
+		log.Printf("[ERROR]: Database failure fetching reviews for referee %d: %v", refereeID, err)
+		return nil, types.ErrInternalServer
+	}
+
+	list := make([]ReviewInfo, 0)
+	for rows.Next() {
+		var r ReviewInfo
+		r.RefereeID = refereeID
+		if err := rows.Scan(&r.ID, &r.MatchID, &r.Rating, &r.CreatedAt, &r.CreatedBy); err != nil {
+			log.Printf("[ERROR]: Database failure scanning review: %v", err)
+			return nil, types.ErrInternalServer
+		}
+		list = append(list, r)
+	}
+	rows.Close()
+
+	return &RefereeReviews{
+		AverageRating: avgRating,
+		Reviews:       list,
+	}, nil
+}

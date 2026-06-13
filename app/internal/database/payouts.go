@@ -123,3 +123,80 @@ func (db *Database) CreatePendingPayout(assignmentID int) types.ErrorApi {
 	}
 	return nil
 }
+
+type PendingPayout struct {
+	RefereeID int     `json:"referee_id"`
+	Amount    float64 `json:"amount"`
+}
+
+func (db *Database) GetPendingPayouts(refereeIDs []int) ([]PendingPayout, types.ErrorApi) {
+	if len(refereeIDs) == 0 {
+		return []PendingPayout{}, nil
+	}
+
+	query := `
+		SELECT ma.referee_id, SUM(p.amount) 
+		FROM payouts p
+		JOIN match_assignments ma ON p.assignment_id = ma.id
+		WHERE p.status = 'pending' AND ma.referee_id IN (`
+	
+	args := make([]interface{}, len(refereeIDs))
+	for i, id := range refereeIDs {
+		args[i] = id
+		if i > 0 {
+			query += ", "
+		}
+		query += "?"
+	}
+	query += `) GROUP BY ma.referee_id`
+
+	rows, cancel, err := db.query(query, args...)
+	defer cancel()
+	if err != nil {
+		log.Printf("[ERROR]: DB error getting pending payouts: %v", err)
+		return nil, types.ErrInternalServer
+	}
+
+	var results []PendingPayout
+	for rows.Next() {
+		var p PendingPayout
+		if err := rows.Scan(&p.RefereeID, &p.Amount); err != nil {
+			log.Printf("[ERROR]: DB error scanning pending payout: %v", err)
+			return nil, types.ErrInternalServer
+		}
+		results = append(results, p)
+	}
+	rows.Close()
+
+	return results, nil
+}
+
+func (db *Database) MarkPayoutsSent(refereeIDs []int) types.ErrorApi {
+	if len(refereeIDs) == 0 {
+		return nil
+	}
+
+	query := `
+		UPDATE payouts p
+		JOIN match_assignments ma ON p.assignment_id = ma.id
+		SET p.status = 'sent'
+		WHERE p.status = 'pending' AND ma.referee_id IN (`
+	
+	args := make([]interface{}, len(refereeIDs))
+	for i, id := range refereeIDs {
+		args[i] = id
+		if i > 0 {
+			query += ", "
+		}
+		query += "?"
+	}
+	query += `)`
+
+	_, err := db.exec(query, args...)
+	if err != nil {
+		log.Printf("[ERROR]: DB error marking payouts sent: %v", err)
+		return types.ErrInternalServer
+	}
+
+	return nil
+}
