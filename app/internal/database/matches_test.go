@@ -281,3 +281,35 @@ func TestCancelMatch(t *testing.T) {
 		t.Errorf("expected ErrNotFound, got: %v", errNotFound)
 	}
 }
+
+func TestRescheduleMatch(t *testing.T) {
+	db := testDB(t)
+
+	matchID, _, _, cleanupMatch := createTestMatch(t, db, "scheduled", 2)
+	defer cleanupMatch()
+
+	start := time.Now().Add(48 * time.Hour).Truncate(time.Second)
+	end := start.Add(2 * time.Hour)
+
+	err := db.RescheduleMatch(matchID, start, end)
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	var newStart, newEnd time.Time
+	row, cancel := db.queryRow(`SELECT match_start, match_end FROM matches WHERE id = ?`, matchID)
+	row.Scan(&newStart, &newEnd)
+	cancel()
+
+	if !newStart.Equal(start) {
+		t.Errorf("expected match_start %v, got %v", start, newStart)
+	}
+	if !newEnd.Equal(end) {
+		t.Errorf("expected match_end %v, got %v", end, newEnd)
+	}
+
+	errNotFound := db.RescheduleMatch(999999, start, end)
+	if !errors.Is(errNotFound, types.ErrNotFound) {
+		t.Errorf("expected ErrNotFound, got: %v", errNotFound)
+	}
+}

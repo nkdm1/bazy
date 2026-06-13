@@ -870,3 +870,23 @@ func (a *Api) cancelMatch(w http.ResponseWriter, r *http.Request) {
 	}
 	ok(w, http.StatusOK, "match cancelled", nil)
 }
+
+type PayloadRescheduleMatch struct {
+	MatchID *int       `json:"match_id"`
+	Start   *time.Time `json:"match_start"`
+	End     *time.Time `json:"match_end"`
+}
+
+func (a *Api) rescheduleMatch(w http.ResponseWriter, r *http.Request) {
+	var payload PayloadRescheduleMatch
+	if err := loadPayload(&payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	if err := a.Database.RescheduleMatch(*payload.MatchID, *payload.Start, *payload.End); err != nil {
+		fail(w, err)
+		return
+	}
+	ok(w, http.StatusOK, "match rescheduled", nil)
+}

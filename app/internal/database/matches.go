@@ -459,3 +459,20 @@ func (db *Database) CancelMatch(matchID int) types.ErrorApi {
 
 	return nil
 }
+
+func (db *Database) RescheduleMatch(matchID int, start, end time.Time) types.ErrorApi {
+	res, err := db.exec(`UPDATE matches SET match_start = ?, match_end = ? WHERE id = ? AND status = 'scheduled'`, start, end, matchID)
+	if err != nil {
+		log.Printf("[ERROR]: DB error rescheduling match: %v", err)
+		return types.ErrInternalServer
+	}
+	affected, err := res.RowsAffected()
+	if err != nil {
+		log.Printf("[ERROR]: DB error getting rows affected: %v", err)
+		return types.ErrInternalServer
+	}
+	if affected == 0 {
+		return types.ErrNotFound
+	}
+	return nil
+}

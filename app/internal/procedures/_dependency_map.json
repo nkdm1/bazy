@@ -172,7 +172,7 @@
     },
 
     "reschedule_match": {
-      "status": "pending",
+      "status": "done",
       "role": "admin",
       "depends_on": ["create_match"],
       "priority_layer": 4,
