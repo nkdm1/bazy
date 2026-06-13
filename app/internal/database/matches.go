@@ -636,3 +636,39 @@ func (db *Database) MarkNoShow(matchID, refereeID int) types.ErrorApi {
 	}
 	return nil
 }
+
+type MatchAssignmentHistory struct {
+	RefereeID int    `json:"referee_id"`
+	Role      string `json:"role"`
+	Status    string `json:"assignment_status"`
+}
+
+func (db *Database) GetMatchAssignmentHistory(matchID int) ([]MatchAssignmentHistory, types.ErrorApi) {
+	rows, cancel, err := db.query(`
+		SELECT ma.referee_id, rm.match_role, ma.assignment_status
+		FROM match_assignments ma
+		JOIN role_in_match rm ON ma.role = rm.id
+		WHERE ma.match_id = ?
+	`, matchID)
+	defer cancel()
+
+	if err != nil {
+		log.Printf("[ERROR]: DB error fetching assignment history: %v", err)
+		return nil, types.ErrInternalServer
+	}
+	defer rows.Close()
+
+	var list []MatchAssignmentHistory
+	for rows.Next() {
+		var h MatchAssignmentHistory
+		if err := rows.Scan(&h.RefereeID, &h.Role, &h.Status); err != nil {
+			log.Printf("[ERROR]: DB error scanning assignment history: %v", err)
+			return nil, types.ErrInternalServer
+		}
+		list = append(list, h)
+	}
+	if list == nil {
+		list = []MatchAssignmentHistory{}
+	}
+	return list, nil
+}

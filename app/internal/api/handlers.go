@@ -1055,3 +1055,20 @@ func (a *Api) markNoShow(w http.ResponseWriter, r *http.Request) {
 	}
 	ok(w, http.StatusOK, "referee marked as noshow", nil)
 }
+
+func (a *Api) getMatchAssignmentHistory(w http.ResponseWriter, r *http.Request) {
+	matchIDStr := chi.URLParam(r, "match_id")
+	matchID, err := strconv.Atoi(matchIDStr)
+	if err != nil {
+		fail(w, types.ErrInvalidPayload)
+		return
+	}
+
+	history, apiErr := a.Database.GetMatchAssignmentHistory(matchID)
+	if apiErr != nil {
+		fail(w, apiErr)
+		return
+	}
+
+	ok(w, http.StatusOK, "match assignment history", history)
+}

@@ -549,3 +549,29 @@ func TestMarkNoShow(t *testing.T) {
 		t.Errorf("expected status 'noshow', got %s", status)
 	}
 }
+
+func TestGetMatchAssignmentHistory(t *testing.T) {
+	db := testDB(t)
+
+	matchID, _, _, cleanupMatch := createTestMatch(t, db, "scheduled", 2)
+	defer cleanupMatch()
+
+	refereeID, cleanupReferee := createTestReferee(t, db)
+	defer cleanupReferee()
+
+	_, cleanupAssign := createTestMatchAssignment(t, db, refereeID, matchID)
+	defer cleanupAssign()
+
+	history, err := db.GetMatchAssignmentHistory(matchID)
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	if len(history) != 1 {
+		t.Errorf("expected 1 history record, got %d", len(history))
+	} else {
+		if history[0].RefereeID != refereeID {
+			t.Errorf("expected referee %d, got %d", refereeID, history[0].RefereeID)
+		}
+	}
+}
