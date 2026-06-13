@@ -269,4 +269,70 @@ func (db *Database) GetUpcomingMatchesWithDetails() ([]UpcomingMatch, types.Erro
 	return matches, nil
 }
 
+type CompletedMatch struct {
+	ID             int       `json:"id"`
+	MatchStart     time.Time `json:"match_start"`
+	MatchEnd       time.Time `json:"match_end"`
+	LevelOfMatch   string    `json:"level_of_match"`
+	VenueGymName   string    `json:"venue_gym_name"`
+	HomeTeamName   string    `json:"home_team_name"`
+	AwayTeamName   string    `json:"away_team_name"`
+	HomeTeamPoints *int      `json:"home_team_points"`
+	AwayTeamPoints *int      `json:"away_team_points"`
+}
 
+func (db *Database) GetCompletedMatches() ([]CompletedMatch, types.ErrorApi) {
+	query := `
+		SELECT 
+			m.id, 
+			m.match_start, 
+			m.match_end, 
+			m.level_of_match,
+			v.gym_name,
+			ht.name as home_team,
+			at.name as away_team,
+			m.home_team_points,
+			m.away_team_points
+		FROM matches m
+		JOIN venues v ON m.venue_id = v.id
+		JOIN teams ht ON m.home_team_id = ht.id
+		JOIN teams at ON m.away_team_id = at.id
+		WHERE m.status = 'completed'
+		ORDER BY m.match_start DESC
+	`
+	rows, cancel, err := db.query(query)
+	defer cancel()
+	if err != nil {
+		log.Printf("[ERROR]: DB error fetching completed matches: %v", err)
+		return nil, types.ErrInternalServer
+	}
+	defer rows.Close()
+
+	var matches []CompletedMatch
+	for rows.Next() {
+		var m CompletedMatch
+		var homePts, awayPts sql.NullInt64
+		if err := rows.Scan(&m.ID, &m.MatchStart, &m.MatchEnd, &m.LevelOfMatch, &m.VenueGymName, &m.HomeTeamName, &m.AwayTeamName, &homePts, &awayPts); err != nil {
+			log.Printf("[ERROR]: DB error scanning completed match: %v", err)
+			return nil, types.ErrInternalServer
+		}
+		if homePts.Valid {
+			pts := int(homePts.Int64)
+			m.HomeTeamPoints = &pts
+		}
+		if awayPts.Valid {
+			pts := int(awayPts.Int64)
+			m.AwayTeamPoints = &pts
+		}
+		matches = append(matches, m)
+	}
+	if err := rows.Err(); err != nil {
+		log.Printf("[ERROR]: Row iteration error: %v", err)
+		return nil, types.ErrInternalServer
+	}
+
+	if len(matches) == 0 {
+		return []CompletedMatch{}, nil
+	}
+	return matches, nil
+}

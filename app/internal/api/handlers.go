@@ -824,3 +824,12 @@ func (a *Api) getUpcomingMatches(w http.ResponseWriter, r *http.Request) {
 	}
 	ok(w, http.StatusOK, "upcoming matches", matches)
 }
+
+func (a *Api) getCompletedMatches(w http.ResponseWriter, r *http.Request) {
+	matches, err := a.Database.GetCompletedMatches()
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	ok(w, http.StatusOK, "completed matches", matches)
+}

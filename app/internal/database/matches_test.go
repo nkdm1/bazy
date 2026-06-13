@@ -169,3 +169,36 @@ func TestGetUpcomingMatchesWithDetails(t *testing.T) {
 	}
 }
 
+func TestGetCompletedMatches(t *testing.T) {
+	db := testDB(t)
+
+	matchID, _, _, cleanupCompleted := createTestMatch(t, db, "completed", -2)
+	defer cleanupCompleted()
+
+	db.exec(`UPDATE matches SET home_team_points = 80, away_team_points = 70 WHERE id = ?`, matchID)
+
+	matches, apiErr := db.GetCompletedMatches()
+	if apiErr != nil {
+		t.Fatalf("expected no error, got: %v", apiErr)
+	}
+
+	var found *CompletedMatch
+	for i := range matches {
+		if matches[i].ID == matchID {
+			found = &matches[i]
+			break
+		}
+	}
+
+	if found == nil {
+		t.Fatalf("expected to find completed match in results")
+	}
+
+	if found.HomeTeamPoints == nil || *found.HomeTeamPoints != 80 {
+		t.Errorf("expected home team points 80, got %v", found.HomeTeamPoints)
+	}
+
+	if found.AwayTeamPoints == nil || *found.AwayTeamPoints != 70 {
+		t.Errorf("expected away team points 70, got %v", found.AwayTeamPoints)
+	}
+}
