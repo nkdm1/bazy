@@ -1019,3 +1019,20 @@ func (a *Api) cancelAssignment(w http.ResponseWriter, r *http.Request) {
 	}
 	ok(w, http.StatusOK, "assignment cancelled", nil)
 }
+
+func (a *Api) getRefereeSchedule(w http.ResponseWriter, r *http.Request) {
+	userId := r.Context().Value(UserIdKey).(int)
+	refereeID, dbErr := a.Database.GetRefereeIDByUserID(userId)
+	if dbErr != nil {
+		fail(w, dbErr)
+		return
+	}
+
+	schedule, apiErr := a.Database.GetAcceptedAssignments(refereeID)
+	if apiErr != nil {
+		fail(w, apiErr)
+		return
+	}
+
+	ok(w, http.StatusOK, "referee schedule", schedule)
+}

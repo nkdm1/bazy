@@ -481,3 +481,35 @@ func TestCancelAcceptedAssignment(t *testing.T) {
 		t.Errorf("expected status 'cancelled', got %s", status)
 	}
 }
+
+func TestGetAcceptedAssignments(t *testing.T) {
+	db := testDB(t)
+
+	matchID, _, _, cleanupMatch := createTestMatch(t, db, "scheduled", 2)
+	defer cleanupMatch()
+
+	refereeID, cleanupReferee := createTestReferee(t, db)
+	defer cleanupReferee()
+
+	_, cleanupAssign := createTestMatchAssignment(t, db, refereeID, matchID)
+	defer cleanupAssign()
+
+	db.exec(`UPDATE match_assignments SET assignment_status = 'accepted' WHERE match_id = ? AND referee_id = ?`, matchID, refereeID)
+
+	accepted, err := db.GetAcceptedAssignments(refereeID)
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	found := false
+	for _, a := range accepted {
+		if a.MatchID == matchID {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Errorf("expected to find match %d in accepted assignments", matchID)
+	}
+}

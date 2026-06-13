@@ -591,3 +591,35 @@ func (db *Database) CancelAcceptedAssignment(matchID, refereeID int) types.Error
 	}
 	return nil
 }
+
+func (db *Database) GetAcceptedAssignments(refereeID int) ([]PendingAssignment, types.ErrorApi) {
+	rows, cancel, err := db.query(`
+		SELECT m.id, m.match_start, m.match_end, m.level_of_match, rm.match_role
+		FROM match_assignments ma
+		JOIN matches m ON ma.match_id = m.id
+		JOIN role_in_match rm ON ma.role = rm.id
+		WHERE ma.referee_id = ? AND ma.assignment_status = 'accepted'
+		ORDER BY m.match_start ASC
+	`, refereeID)
+	defer cancel()
+
+	if err != nil {
+		log.Printf("[ERROR]: DB error fetching accepted assignments: %v", err)
+		return nil, types.ErrInternalServer
+	}
+	defer rows.Close()
+
+	var list []PendingAssignment
+	for rows.Next() {
+		var p PendingAssignment
+		if err := rows.Scan(&p.MatchID, &p.MatchStart, &p.MatchEnd, &p.Level, &p.Role); err != nil {
+			log.Printf("[ERROR]: DB error scanning accepted assignment: %v", err)
+			return nil, types.ErrInternalServer
+		}
+		list = append(list, p)
+	}
+	if list == nil {
+		list = []PendingAssignment{}
+	}
+	return list, nil
+}
