@@ -655,6 +655,67 @@ func (a *Api) submitLicenseRequest(w http.ResponseWriter, r *http.Request) {
 	ok(w, http.StatusCreated, "license verified and added successfully", nil)
 }
 
+// requestNewPhone generates a phone verification token and mock-sends SMS.
+func (a *Api) requestNewPhone(w http.ResponseWriter, r *http.Request) {
+	payload := new(struct {
+		Phone *string `json:"phone"`
+	})
+	if err := loadPayload(payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	userID := r.Context().Value(UserIdKey).(int)
+	refereeID, err := a.Database.GetRefereeIDByUserID(userID)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+
+	tokenHex, err := a.Database.CreatePhoneChangeToken(refereeID, *payload.Phone)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+
+	response := new(struct {
+		FakeSMSMessage string `json:"fake_sms_message"`
+		NextStep       string `json:"next_step"`
+	})
+	response.FakeSMSMessage = tokenHex
+	response.NextStep = "/referee/setPhone/confirm"
+
+	ok(w, http.StatusOK, "confirm your new phone number", response)
+}
+
+// updatePhone consumes the phone verification token and saves new phone.
+func (a *Api) updatePhone(w http.ResponseWriter, r *http.Request) {
+	payload := new(struct {
+		Token *string `json:"token"`
+	})
+	if err := loadPayload(payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	plainTokenBytes, err := hex.DecodeString(*payload.Token)
+	if err != nil {
+		fail(w, types.ErrInvalidPayload)
+		return
+	}
+
+	tokenHashBytes := sha256.Sum256(plainTokenBytes)
+	tokenHash := hex.EncodeToString(tokenHashBytes[:])
+
+	if err := a.Database.ConsumePhoneChangeToken(tokenHash); err != nil {
+		fail(w, err)
+		return
+	}
+
+	ok(w, http.StatusOK, "phone number updated successfully", nil)
+}
+
+
 
 
 

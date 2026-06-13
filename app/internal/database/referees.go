@@ -2,11 +2,14 @@ package database
 
 import (
 	"context"
+	"crypto/sha256"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"log"
 	"time"
 
+	"github.com/nkdm1/bazy/internal/misc"
 	"github.com/nkdm1/bazy/internal/types"
 )
 
@@ -279,4 +282,87 @@ func (db *Database) InsertLicense(refereeID, licenseNameID int, licenseNumber st
 	}
 	return nil
 }
+
+// CreatePhoneChangeToken generates a verification token and records the phone change request.
+func (db *Database) CreatePhoneChangeToken(refereeID int, newPhone string) (string, types.ErrorApi) {
+	tokenBytes, apiErr := misc.GenerateToken()
+	if apiErr != nil {
+		return "", apiErr
+	}
+	tokenHashBytes := sha256.Sum256(tokenBytes)
+	tokenHash := hex.EncodeToString(tokenHashBytes[:])
+
+	_, err := db.exec(`
+		INSERT INTO set_phone (referee_id, new_phone, token_hash)
+		VALUES (?, ?, ?);
+	`, refereeID, newPhone, tokenHash)
+	if err != nil {
+		log.Printf("[ERROR]: Database failure inserting set_phone: %v", err)
+		return "", types.ErrInternalServer
+	}
+
+	return hex.EncodeToString(tokenBytes), nil
+}
+
+// ConsumePhoneChangeToken processes the verification token and applies the new phone.
+func (db *Database) ConsumePhoneChangeToken(tokenHash string) types.ErrorApi {
+	row, cancel := db.queryRow(`
+		SELECT id, referee_id, new_phone, expire_time, status
+		FROM set_phone
+		WHERE token_hash = ?;
+	`, tokenHash)
+	defer cancel()
+
+	var id, refereeID int
+	var newPhone string
+	var expireTime time.Time
+	var status string
+
+	if err := row.Scan(&id, &refereeID, &newPhone, &expireTime, &status); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return types.ErrInvalidToken
+		}
+		log.Printf("[ERROR]: Database failure finding set_phone token: %v", err)
+		return types.ErrInternalServer
+	}
+
+	if status == "used" || status == "expired" {
+		return types.ErrInvalidToken
+	}
+
+	if time.Now().After(expireTime) {
+		_, err := db.exec(`UPDATE set_phone SET status = 'expired' WHERE id = ?`, id)
+		if err != nil {
+			log.Printf("[ERROR]: Database failure marking set_phone token expired: %v", err)
+		}
+		return types.ErrInvalidToken
+	}
+
+	// Verify referee exists in referees table
+	var refereeExists int
+	rowRef, cancelRef := db.queryRow(`SELECT COUNT(*) FROM referees WHERE id = ?`, refereeID)
+	if err := rowRef.Scan(&refereeExists); err != nil {
+		cancelRef()
+		log.Printf("[ERROR]: Database failure checking referee existence: %v", err)
+		return types.ErrInternalServer
+	}
+	cancelRef()
+
+	if refereeExists > 0 {
+		_, err := db.exec(`UPDATE referees SET phone = ? WHERE id = ?`, newPhone, refereeID)
+		if err != nil {
+			log.Printf("[ERROR]: Database failure updating phone in referees: %v", err)
+			return types.ErrInternalServer
+		}
+	}
+
+	_, err := db.exec(`UPDATE set_phone SET status = 'used' WHERE id = ?`, id)
+	if err != nil {
+		log.Printf("[ERROR]: Database failure marking set_phone token used: %v", err)
+		return types.ErrInternalServer
+	}
+
+	return nil
+}
+
 

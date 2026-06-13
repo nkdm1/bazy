@@ -1,6 +1,8 @@
 package database
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"errors"
 	"testing"
 	"time"
@@ -143,6 +145,40 @@ func TestInsertLicense(t *testing.T) {
 		defer db.exec(`DELETE FROM licenses WHERE license_number = ?`, licenseNum)
 	})
 }
+
+func TestPhoneChangeToken(t *testing.T) {
+	db := testDB(t)
+
+	refereeID, cleanupReferee := createTestReferee(t, db)
+	defer cleanupReferee()
+
+	t.Run("creates and consumes phone change token successfully", func(t *testing.T) {
+		tokenHex, err := db.CreatePhoneChangeToken(refereeID, "+48111222333")
+		if err != nil {
+			t.Fatalf("expected no error creating phone token, got %v", err)
+		}
+
+		plainTokenBytes, _ := hex.DecodeString(tokenHex)
+		tokenHashBytes := sha256.Sum256(plainTokenBytes)
+		tokenHash := hex.EncodeToString(tokenHashBytes[:])
+
+		err = db.ConsumePhoneChangeToken(tokenHash)
+		if err != nil {
+			t.Fatalf("expected no error consuming phone token, got %v", err)
+		}
+
+		// Verify referee table has updated phone
+		var updatedPhone string
+		row, cancel := db.queryRow(`SELECT phone FROM referees WHERE id = ?`, refereeID)
+		row.Scan(&updatedPhone)
+		cancel()
+
+		if updatedPhone != "+48111222333" {
+			t.Errorf("expected phone to be '+48111222333', got %q", updatedPhone)
+		}
+	})
+}
+
 
 
 
