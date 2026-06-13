@@ -994,3 +994,28 @@ func (a *Api) getPendingAssignments(w http.ResponseWriter, r *http.Request) {
 
 	ok(w, http.StatusOK, "pending assignments", assignments)
 }
+
+type PayloadCancelAssignment struct {
+	MatchID *int `json:"match_id"`
+}
+
+func (a *Api) cancelAssignment(w http.ResponseWriter, r *http.Request) {
+	userId := r.Context().Value(UserIdKey).(int)
+	refereeID, dbErr := a.Database.GetRefereeIDByUserID(userId)
+	if dbErr != nil {
+		fail(w, dbErr)
+		return
+	}
+
+	var payload PayloadCancelAssignment
+	if err := loadPayload(&payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	if err := a.Database.CancelAcceptedAssignment(*payload.MatchID, refereeID); err != nil {
+		fail(w, err)
+		return
+	}
+	ok(w, http.StatusOK, "assignment cancelled", nil)
+}

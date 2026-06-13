@@ -578,3 +578,16 @@ func (db *Database) GetPendingAssignments(refereeID int) ([]PendingAssignment, t
 	}
 	return list, nil
 }
+
+func (db *Database) CancelAcceptedAssignment(matchID, refereeID int) types.ErrorApi {
+	res, err := db.exec(`UPDATE match_assignments SET assignment_status = 'cancelled' WHERE match_id = ? AND referee_id = ? AND assignment_status = 'accepted'`, matchID, refereeID)
+	if err != nil {
+		log.Printf("[ERROR]: DB error canceling assignment: %v", err)
+		return types.ErrInternalServer
+	}
+	affected, _ := res.RowsAffected()
+	if affected == 0 {
+		return types.ErrNotFound
+	}
+	return nil
+}

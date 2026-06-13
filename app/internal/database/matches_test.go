@@ -445,3 +445,39 @@ func TestGetPendingAssignments(t *testing.T) {
 		t.Errorf("expected to find match %d in pending assignments", matchID)
 	}
 }
+
+func TestCancelAcceptedAssignment(t *testing.T) {
+	db := testDB(t)
+
+	matchID, _, _, cleanupMatch := createTestMatch(t, db, "scheduled", 2)
+	defer cleanupMatch()
+
+	refereeID, cleanupReferee := createTestReferee(t, db)
+	defer cleanupReferee()
+
+	_, cleanupAssign := createTestMatchAssignment(t, db, refereeID, matchID)
+	defer cleanupAssign()
+
+	db.exec(`UPDATE match_assignments SET assignment_status = 'pending' WHERE match_id = ? AND referee_id = ?`, matchID, refereeID)
+
+	errNotFound := db.CancelAcceptedAssignment(matchID, refereeID)
+	if !errors.Is(errNotFound, types.ErrNotFound) {
+		t.Errorf("expected ErrNotFound for pending assignment, got: %v", errNotFound)
+	}
+
+	db.exec(`UPDATE match_assignments SET assignment_status = 'accepted' WHERE match_id = ? AND referee_id = ?`, matchID, refereeID)
+
+	err := db.CancelAcceptedAssignment(matchID, refereeID)
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	var status string
+	row, cancel := db.queryRow(`SELECT assignment_status FROM match_assignments WHERE match_id = ? AND referee_id = ?`, matchID, refereeID)
+	row.Scan(&status)
+	cancel()
+
+	if status != "cancelled" {
+		t.Errorf("expected status 'cancelled', got %s", status)
+	}
+}

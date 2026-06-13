@@ -228,7 +228,7 @@
     },
 
     "cancel_assignment": {
-      "status": "pending",
+      "status": "done",
       "role": "referee",
       "depends_on": ["respond_to_assignment"],
       "priority_layer": 6,

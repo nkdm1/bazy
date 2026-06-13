@@ -50,6 +50,7 @@ func (a *Api) Mount() http.Handler {
 			r.Post("/setPhone/confirm", a.updatePhone)
 			r.Post("/assignment/respond", a.respondToAssignment)
 			r.Get("/assignments/pending", a.getPendingAssignments)
+			r.Post("/assignment/cancel", a.cancelAssignment)
 		})
 		r.Route("/admin", func(r chi.Router) {
 			r.Use(a.authorize)
