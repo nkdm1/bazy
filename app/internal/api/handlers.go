@@ -1036,3 +1036,22 @@ func (a *Api) getRefereeSchedule(w http.ResponseWriter, r *http.Request) {
 
 	ok(w, http.StatusOK, "referee schedule", schedule)
 }
+
+type PayloadMarkNoShow struct {
+	MatchID   *int `json:"match_id"`
+	RefereeID *int `json:"referee_id"`
+}
+
+func (a *Api) markNoShow(w http.ResponseWriter, r *http.Request) {
+	var payload PayloadMarkNoShow
+	if err := loadPayload(&payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	if err := a.Database.MarkNoShow(*payload.MatchID, *payload.RefereeID); err != nil {
+		fail(w, err)
+		return
+	}
+	ok(w, http.StatusOK, "referee marked as noshow", nil)
+}
