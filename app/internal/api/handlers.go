@@ -534,6 +534,62 @@ func (a *Api) createVenue(w http.ResponseWriter, r *http.Request) {
 	ok(w, http.StatusCreated, "venue created successfully", nil)
 }
 
+// createMatch registers a new match scheduled between two existing teams at a venue.
+func (a *Api) createMatch(w http.ResponseWriter, r *http.Request) {
+	payload := new(struct {
+		HomeTeamName *string `json:"home_team_name"`
+		AwayTeamName *string `json:"away_team_name"`
+		VenueName    *string `json:"venue_name"`
+		MatchLevel   *string `json:"match_level"`
+		MatchStart   *string `json:"match_start"`
+		MatchEnd     *string `json:"match_end"`
+	})
+	if err := loadPayload(payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	start, errStart := time.Parse(time.RFC3339, *payload.MatchStart)
+	end, errEnd := time.Parse(time.RFC3339, *payload.MatchEnd)
+	if errStart != nil || errEnd != nil {
+		fail(w, types.ErrInvalidPayload)
+		return
+	}
+
+	homeTeamID, err := a.Database.GetTeamIDByName(*payload.HomeTeamName)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+
+	awayTeamID, err := a.Database.GetTeamIDByName(*payload.AwayTeamName)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+
+	venueID, err := a.Database.GetVenueIDByName(*payload.VenueName)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+
+	levelID, err := a.Database.GetMatchLevelID(*payload.MatchLevel)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+
+	err = a.Database.CreateMatch(homeTeamID, awayTeamID, venueID, levelID, start, end)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+
+	ok(w, http.StatusCreated, "match created successfully", nil)
+}
+
+
 
 
 // ok writes a successful http response status code `status`

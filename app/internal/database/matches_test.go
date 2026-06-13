@@ -3,6 +3,7 @@ package database
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/nkdm1/bazy/internal/types"
 )
@@ -74,3 +75,61 @@ func TestMarkMatchAsCompleted(t *testing.T) {
 		}
 	})
 }
+
+func TestCreateMatch(t *testing.T) {
+	db := testDB(t)
+
+	homeTeamID, cleanupHome := createTestTeam(t, db)
+	defer cleanupHome()
+	awayTeamID, cleanupAway := createTestTeam(t, db)
+	defer cleanupAway()
+	venueID, cleanupVenue := createTestVenue(t, db)
+	defer cleanupVenue()
+	levelID, cleanupLevel := createTestMatchLevel(t, db)
+	defer cleanupLevel()
+
+	t.Run("successfully inserts a match", func(t *testing.T) {
+		start := time.Now().Add(24 * time.Hour)
+		end := start.Add(2 * time.Hour)
+
+		// Get names of teams and venue to verify name lookup
+		var homeName, awayName, gymName string
+		rowH, cancelH := db.queryRow(`SELECT name FROM teams WHERE id = ?`, homeTeamID)
+		rowH.Scan(&homeName)
+		cancelH()
+
+		rowA, cancelA := db.queryRow(`SELECT name FROM teams WHERE id = ?`, awayTeamID)
+		rowA.Scan(&awayName)
+		cancelA()
+
+		rowV, cancelV := db.queryRow(`SELECT gym_name FROM venues WHERE id = ?`, venueID)
+		rowV.Scan(&gymName)
+		cancelV()
+
+		hID, err := db.GetTeamIDByName(homeName)
+		if err != nil || hID != homeTeamID {
+			t.Fatalf("failed GetTeamIDByName: %v, got %d, expected %d", err, hID, homeTeamID)
+		}
+
+		aID, err := db.GetTeamIDByName(awayName)
+		if err != nil || aID != awayTeamID {
+			t.Fatalf("failed GetTeamIDByName: %v, got %d, expected %d", err, aID, awayTeamID)
+		}
+
+		vID, err := db.GetVenueIDByName(gymName)
+		if err != nil || vID <= 0 {
+			t.Fatalf("failed GetVenueIDByName: %v, got %d, expected positive", err, vID)
+		}
+
+		err = db.CreateMatch(homeTeamID, awayTeamID, venueID, levelID, start, end)
+		if err != nil {
+			t.Fatalf("failed CreateMatch: %v", err)
+		}
+
+		// Cleanup inserted match
+		defer func() {
+			db.exec(`DELETE FROM matches WHERE home_team_id = ? AND away_team_id = ?`, homeTeamID, awayTeamID)
+		}()
+	})
+}
+

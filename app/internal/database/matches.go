@@ -114,3 +114,53 @@ func (db *Database) MarkMatchAsCompleted(matchID int) types.ErrorApi {
 
 	return nil
 }
+
+// GetTeamIDByName looks up a team ID by the team's name.
+func (db *Database) GetTeamIDByName(name string) (int, types.ErrorApi) {
+	row, cancel := db.queryRow(`
+		SELECT id FROM teams WHERE name = ?;
+	`, name)
+	defer cancel()
+
+	var id int
+	if err := row.Scan(&id); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return -1, types.ErrNotFound
+		}
+		log.Printf("[ERROR]: Database error fetching team %q: %v", name, err)
+		return -1, types.ErrInternalServer
+	}
+	return id, nil
+}
+
+// GetVenueIDByName looks up a venue ID by its gym name.
+func (db *Database) GetVenueIDByName(gymName string) (int, types.ErrorApi) {
+	row, cancel := db.queryRow(`
+		SELECT id FROM venues WHERE gym_name = ?;
+	`, gymName)
+	defer cancel()
+
+	var id int
+	if err := row.Scan(&id); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return -1, types.ErrNotFound
+		}
+		log.Printf("[ERROR]: Database error fetching venue %q: %v", gymName, err)
+		return -1, types.ErrInternalServer
+	}
+	return id, nil
+}
+
+// CreateMatch inserts a new scheduled match into the matches table.
+func (db *Database) CreateMatch(homeTeamID, awayTeamID, venueID, levelID int, start, end time.Time) types.ErrorApi {
+	_, err := db.exec(`
+		INSERT INTO matches (home_team_id, away_team_id, venue_id, level_of_match, match_start, match_end, status)
+		VALUES (?, ?, ?, ?, ?, ?, 'scheduled');
+	`, homeTeamID, awayTeamID, venueID, levelID, start, end)
+	if err != nil {
+		log.Printf("[ERROR]: Database failure inserting match: %v", err)
+		return types.ErrInternalServer
+	}
+	return nil
+}
+
