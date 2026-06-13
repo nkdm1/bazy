@@ -204,7 +204,7 @@
     },
 
     "check_pending_assignments": {
-      "status": "pending",
+      "status": "done",
       "role": "referee",
       "depends_on": ["assign_referee"],
       "priority_layer": 5,

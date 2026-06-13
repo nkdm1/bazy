@@ -977,3 +977,20 @@ func (a *Api) respondToAssignment(w http.ResponseWriter, r *http.Request) {
 	}
 	ok(w, http.StatusOK, "assignment response recorded", nil)
 }
+
+func (a *Api) getPendingAssignments(w http.ResponseWriter, r *http.Request) {
+	userId := r.Context().Value(UserIdKey).(int)
+	refereeID, dbErr := a.Database.GetRefereeIDByUserID(userId)
+	if dbErr != nil {
+		fail(w, dbErr)
+		return
+	}
+
+	assignments, apiErr := a.Database.GetPendingAssignments(refereeID)
+	if apiErr != nil {
+		fail(w, apiErr)
+		return
+	}
+
+	ok(w, http.StatusOK, "pending assignments", assignments)
+}

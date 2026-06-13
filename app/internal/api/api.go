@@ -68,6 +68,7 @@ func (a *Api) Mount() http.Handler {
 			r.Use(a.authorize)
 			r.Use(a.refereeOnly)
 			r.Post("/assignment/respond", a.respondToAssignment)
+			r.Get("/assignments/pending", a.getPendingAssignments)
 		})
 		r.Route("/register", func(r chi.Router) {
 			r.Post("/", a.register)

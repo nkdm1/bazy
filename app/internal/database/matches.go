@@ -539,3 +539,42 @@ func (db *Database) RespondToAssignment(matchID, refereeID int, accept bool) typ
 	}
 	return nil
 }
+
+type PendingAssignment struct {
+	MatchID    int       `json:"match_id"`
+	MatchStart time.Time `json:"match_start"`
+	MatchEnd   time.Time `json:"match_end"`
+	Level      string    `json:"level_of_match"`
+	Role       string    `json:"role"`
+}
+
+func (db *Database) GetPendingAssignments(refereeID int) ([]PendingAssignment, types.ErrorApi) {
+	rows, cancel, err := db.query(`
+		SELECT m.id, m.match_start, m.match_end, m.level_of_match, rm.match_role
+		FROM match_assignments ma
+		JOIN matches m ON ma.match_id = m.id
+		JOIN role_in_match rm ON ma.role = rm.id
+		WHERE ma.referee_id = ? AND ma.assignment_status = 'pending'
+	`, refereeID)
+	defer cancel()
+
+	if err != nil {
+		log.Printf("[ERROR]: DB error fetching pending assignments: %v", err)
+		return nil, types.ErrInternalServer
+	}
+	defer rows.Close()
+
+	var list []PendingAssignment
+	for rows.Next() {
+		var p PendingAssignment
+		if err := rows.Scan(&p.MatchID, &p.MatchStart, &p.MatchEnd, &p.Level, &p.Role); err != nil {
+			log.Printf("[ERROR]: DB error scanning pending assignment: %v", err)
+			return nil, types.ErrInternalServer
+		}
+		list = append(list, p)
+	}
+	if list == nil {
+		list = []PendingAssignment{}
+	}
+	return list, nil
+}

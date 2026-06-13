@@ -412,3 +412,36 @@ func TestRespondToAssignment(t *testing.T) {
 		t.Errorf("expected ErrNotFound, got: %v", errNotFound)
 	}
 }
+
+func TestGetPendingAssignments(t *testing.T) {
+	db := testDB(t)
+
+	matchID, _, _, cleanupMatch := createTestMatch(t, db, "scheduled", 2)
+	defer cleanupMatch()
+
+	refereeID, cleanupReferee := createTestReferee(t, db)
+	defer cleanupReferee()
+
+	_, cleanupAssign := createTestMatchAssignment(t, db, refereeID, matchID)
+	defer cleanupAssign()
+
+	// Ensure it's pending
+	db.exec(`UPDATE match_assignments SET assignment_status = 'pending' WHERE match_id = ? AND referee_id = ?`, matchID, refereeID)
+
+	pending, err := db.GetPendingAssignments(refereeID)
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	found := false
+	for _, p := range pending {
+		if p.MatchID == matchID {
+			found = true
+			break
+		}
+	}
+
+	if !found {
+		t.Errorf("expected to find match %d in pending assignments", matchID)
+	}
+}
