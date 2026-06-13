@@ -504,6 +504,37 @@ func (a *Api) createTeam(w http.ResponseWriter, r *http.Request) {
 	ok(w, http.StatusCreated, "team created successfully", nil)
 }
 
+// createVenue inserts address details first, then creates a venue tied to it.
+func (a *Api) createVenue(w http.ResponseWriter, r *http.Request) {
+	payload := new(struct {
+		GymName      *string `json:"gym_name"`
+		Postcode     *string `json:"postcode"`
+		City         *string `json:"city"`
+		Street       string  `json:"street"`
+		StreetNumber *string `json:"street_number"`
+		FlatNumber   string  `json:"flat_number"`
+	})
+	if err := loadPayload(payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	postcode := *payload.Postcode
+	if len(postcode) != 6 || postcode[2] != '-' {
+		fail(w, types.ErrInvalidPayload)
+		return
+	}
+
+	err := a.Database.CreateVenue(*payload.GymName, postcode, *payload.City, payload.Street, *payload.StreetNumber, payload.FlatNumber)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+
+	ok(w, http.StatusCreated, "venue created successfully", nil)
+}
+
+
 
 // ok writes a successful http response status code `status`
 // with `message` attached and, optionally, any `data` provided
