@@ -2,16 +2,19 @@ package main
 
 import (
 	"bytes"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
 	"net/http/cookiejar"
 	"os"
+	"strings"
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 const baseURL = "http://localhost:8080"
@@ -22,10 +25,9 @@ var (
 	viewerClient  *http.Client
 
 	// Global state for extracting IDs
-	matchID      int
-	refereeID    int
-	assignmentID int
-	payoutID     int
+	matchID   int
+	refereeID int
+	payoutID  int
 
 	// Lipgloss styles
 	titleStyle = lipgloss.NewStyle().
@@ -195,11 +197,15 @@ func (m model) View() string {
 }
 
 func main() {
+	cleanupDB()
+	defer cleanupDB()
+
 	// Pre-flight check
 	res, err := http.Get(baseURL + "/status")
 	if err != nil || res.StatusCode != 200 {
 		fmt.Println("[ERROR] Application is not running or /status endpoint failed.")
 		fmt.Println("Please start the application on port 8080 and try running the demo again.")
+		cleanupDB()
 		os.Exit(1)
 	}
 
@@ -215,7 +221,41 @@ func main() {
 	p := tea.NewProgram(initialModel(), tea.WithAltScreen())
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("Error running program: %v", err)
+		cleanupDB()
 		os.Exit(1)
+	}
+}
+
+func cleanupDB() {
+	db, err := sql.Open("mysql", "root:root@tcp(ubuntu:3306)/db?parseTime=true")
+	if err != nil {
+		return
+	}
+	defer db.Close()
+
+	queries := []string{
+		"SET FOREIGN_KEY_CHECKS = 0",
+		"DELETE FROM reviews",
+		"DELETE FROM payouts",
+		"DELETE FROM match_assignments",
+		"DELETE FROM matches",
+		"DELETE FROM teams",
+		"DELETE FROM venues",
+		"DELETE FROM availability",
+		"DELETE FROM wages",
+		"DELETE FROM licenses",
+		"DELETE FROM set_phone",
+		"DELETE FROM referees",
+		"DELETE FROM set_password",
+		"DELETE FROM set_mail",
+		"DELETE FROM auth_tokens",
+		"DELETE FROM users WHERE email != 'admin@example.com'",
+		"INSERT IGNORE INTO role_in_match (match_role) VALUES ('crew_chief'), ('umpire')",
+		"SET FOREIGN_KEY_CHECKS = 1",
+	}
+
+	for _, q := range queries {
+		db.Exec(q)
 	}
 }
 
@@ -270,9 +310,9 @@ func getSteps() []Step {
 			Desc:    "Admin schedules a new match",
 			Method:  "POST",
 			Path:    "/admin/matches",
-			Payload: map[string]interface{}{"home_team_name": "Team Alpha", "away_team_name": "Team Beta", "venue_name": "Demo Arena", "match_level": "Professional", "match_start": "2026-06-15T12:00:00Z", "match_end": "2026-06-15T14:00:00Z"},
+			Payload: map[string]interface{}{"home_team_name": "Team Alpha", "away_team_name": "Team Beta", "venue_name": "Demo Arena", "match_level": "fiba", "match_start": "2026-06-15T12:00:00Z", "match_end": "2026-06-15T14:00:00Z"},
 			Do: func() string {
-				return doReq(adminClient, "POST", "/admin/matches", map[string]interface{}{"home_team_name": "Team Alpha", "away_team_name": "Team Beta", "venue_name": "Demo Arena", "match_level": "Professional", "match_start": "2026-06-15T12:00:00Z", "match_end": "2026-06-15T14:00:00Z"})
+				return doReq(adminClient, "POST", "/admin/matches", map[string]interface{}{"home_team_name": "Team Alpha", "away_team_name": "Team Beta", "venue_name": "Demo Arena", "match_level": "fiba", "match_start": "2026-06-15T12:00:00Z", "match_end": "2026-06-15T14:00:00Z"})
 			},
 		},
 		{
@@ -288,12 +328,12 @@ func getSteps() []Step {
 		},
 		{
 			Scene:   "SCENE 1: ADMIN DATA SETUP",
-			Desc:    "Admin sets wages for the Professional league",
+			Desc:    "Admin sets wages for the FIBA league",
 			Method:  "POST",
 			Path:    "/admin/wages",
-			Payload: map[string]interface{}{"match_level": "Professional", "match_role": "crew_chief", "fee": 150.0},
+			Payload: map[string]interface{}{"match_level": "fiba", "match_role": "crew_chief", "fee": 150.0},
 			Do: func() string {
-				return doReq(adminClient, "POST", "/admin/wages", map[string]interface{}{"match_level": "Professional", "match_role": "crew_chief", "fee": 150.0})
+				return doReq(adminClient, "POST", "/admin/wages", map[string]interface{}{"match_level": "fiba", "match_role": "crew_chief", "fee": 150.0})
 			},
 		},
 		{
@@ -301,9 +341,17 @@ func getSteps() []Step {
 			Desc:    "New user registers an account",
 			Method:  "POST",
 			Path:    "/register/",
-			Payload: map[string]interface{}{"first_name": "John", "last_name": "Whistle", "email": "john@referee.com", "password": "password", "confirm_password": "password"},
+			Payload: map[string]interface{}{"name": "John", "surname": "Whistle", "email": "john@referee.com"},
 			Do: func() string {
-				return doReq(viewerClient, "POST", "/register/", map[string]interface{}{"first_name": "John", "last_name": "Whistle", "email": "john@referee.com", "password": "password", "confirm_password": "password"})
+				res := doReq(viewerClient, "POST", "/register/", map[string]interface{}{"name": "John", "surname": "Whistle", "email": "john@referee.com"})
+				var rResp struct {
+					Data struct {
+						Token string `json:"fake_email_message"`
+					} `json:"data"`
+				}
+				json.Unmarshal([]byte(getRawJSON(res)), &rResp)
+				doReq(viewerClient, "POST", "/register/confirm", map[string]interface{}{"token": rResp.Data.Token, "new_password": "password"})
+				return res
 			},
 		},
 		{
@@ -342,9 +390,9 @@ func getSteps() []Step {
 			Desc:    "Referee marks their availability",
 			Method:  "POST",
 			Path:    "/referee/availability",
-			Payload: map[string]interface{}{"date": "2026-06-15", "start_time": "08:00:00", "end_time": "20:00:00", "is_available": true},
+			Payload: map[string]interface{}{"date": "2026-06-15"},
 			Do: func() string {
-				return doReq(refereeClient, "POST", "/referee/availability", map[string]interface{}{"date": "2026-06-15", "start_time": "08:00:00", "end_time": "20:00:00", "is_available": true})
+				return doReq(refereeClient, "POST", "/referee/availability", map[string]interface{}{"date": "2026-06-15"})
 			},
 		},
 		{
@@ -364,7 +412,6 @@ func getSteps() []Step {
 			Path:   "/referee/assignments/pending",
 			Do: func() string {
 				res := doReq(refereeClient, "GET", "/referee/assignments/pending", nil)
-				assignmentID = extractAssignmentID(res, matchID)
 				return res
 			},
 		},
@@ -373,9 +420,9 @@ func getSteps() []Step {
 			Desc:    "Referee accepts the assignment",
 			Method:  "POST",
 			Path:    "/referee/assignment/respond",
-			Payload: map[string]interface{}{"status": "accepted"}, // assignment_id added dynamically
+			Payload: map[string]interface{}{"accept": true}, // match_id added dynamically
 			Do: func() string {
-				return doReq(refereeClient, "POST", "/referee/assignment/respond", map[string]interface{}{"assignment_id": assignmentID, "status": "accepted"})
+				return doReq(refereeClient, "POST", "/referee/assignment/respond", map[string]interface{}{"match_id": matchID, "accept": true})
 			},
 		},
 		{
@@ -383,9 +430,9 @@ func getSteps() []Step {
 			Desc:    "Referee submits final score for the match",
 			Method:  "POST",
 			Path:    "/referee/match/score",
-			Payload: map[string]interface{}{"home_score": 2, "away_score": 1}, // match_id added dynamically
+			Payload: map[string]interface{}{"home_team_points": 2, "away_team_points": 1}, // match_id added dynamically
 			Do: func() string {
-				return doReq(refereeClient, "POST", "/referee/match/score", map[string]interface{}{"match_id": matchID, "home_score": 2, "away_score": 1})
+				return doReq(refereeClient, "POST", "/referee/match/score", map[string]interface{}{"match_id": matchID, "home_team_points": 2, "away_team_points": 1})
 			},
 		},
 		{
@@ -395,7 +442,14 @@ func getSteps() []Step {
 			Path:    "/login",
 			Payload: map[string]interface{}{"email": "bob@fan.com", "password": "password"},
 			Do: func() string {
-				doReq(viewerClient, "POST", "/register/", map[string]interface{}{"first_name": "Bob", "last_name": "Fan", "email": "bob@fan.com", "password": "password", "confirm_password": "password"})
+				res := doReq(viewerClient, "POST", "/register/", map[string]interface{}{"name": "Bob", "surname": "Fan", "email": "bob@fan.com"})
+				var rResp struct {
+					Data struct {
+						Token string `json:"fake_email_message"`
+					} `json:"data"`
+				}
+				json.Unmarshal([]byte(getRawJSON(res)), &rResp)
+				doReq(viewerClient, "POST", "/register/confirm", map[string]interface{}{"token": rResp.Data.Token, "new_password": "password"})
 				return doReq(viewerClient, "POST", "/login", map[string]interface{}{"email": "bob@fan.com", "password": "password"})
 			},
 		},
@@ -445,7 +499,7 @@ func getSteps() []Step {
 			Path:   "/referee/payouts",
 			Do: func() string {
 				res := doReq(refereeClient, "GET", "/referee/payouts", nil)
-				payoutID = extractPayoutID(res, assignmentID)
+				payoutID = extractPayoutID(res)
 				return res
 			},
 		},
@@ -502,9 +556,17 @@ func doReq(client *http.Client, method, path string, bodyObj interface{}) string
 	return fmt.Sprintf("Status: %s\nTime: %s\n\n%s", res.Status, duration, string(resBodyBytes))
 }
 
+func getRawJSON(s string) string {
+	idx := strings.Index(s, "\n\n")
+	if idx != -1 {
+		return s[idx+2:]
+	}
+	return s
+}
+
 func extractMatchID(resJSON string, home, away string) int {
 	var parsed map[string]interface{}
-	json.Unmarshal([]byte(resJSON), &parsed)
+	json.Unmarshal([]byte(getRawJSON(resJSON)), &parsed)
 	if data, ok := parsed["data"].([]interface{}); ok {
 		for _, item := range data {
 			match := item.(map[string]interface{})
@@ -518,7 +580,7 @@ func extractMatchID(resJSON string, home, away string) int {
 
 func extractRefereeID(resJSON string, email string) int {
 	var parsed map[string]interface{}
-	json.Unmarshal([]byte(resJSON), &parsed)
+	json.Unmarshal([]byte(getRawJSON(resJSON)), &parsed)
 	if data, ok := parsed["data"].([]interface{}); ok {
 		for _, item := range data {
 			ref := item.(map[string]interface{})
@@ -530,30 +592,12 @@ func extractRefereeID(resJSON string, email string) int {
 	return 0
 }
 
-func extractAssignmentID(resJSON string, matchID int) int {
+func extractPayoutID(resJSON string) int {
 	var parsed map[string]interface{}
-	json.Unmarshal([]byte(resJSON), &parsed)
-	if data, ok := parsed["data"].([]interface{}); ok {
-		for _, item := range data {
-			assign := item.(map[string]interface{})
-			if int(assign["match_id"].(float64)) == matchID {
-				return int(assign["id"].(float64))
-			}
-		}
-	}
-	return 0
-}
-
-func extractPayoutID(resJSON string, assignID int) int {
-	var parsed map[string]interface{}
-	json.Unmarshal([]byte(resJSON), &parsed)
-	if data, ok := parsed["data"].([]interface{}); ok {
-		for _, item := range data {
-			payout := item.(map[string]interface{})
-			if int(payout["assignment_id"].(float64)) == assignID {
-				return int(payout["id"].(float64))
-			}
-		}
+	json.Unmarshal([]byte(getRawJSON(resJSON)), &parsed)
+	if data, ok := parsed["data"].([]interface{}); ok && len(data) > 0 {
+		payout := data[0].(map[string]interface{})
+		return int(payout["id"].(float64))
 	}
 	return 0
 }

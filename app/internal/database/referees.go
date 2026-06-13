@@ -89,6 +89,7 @@ func (db *Database) SetUserAsReferee(userID int, phone, postcode, city, street, 
 }
 
 type RefereeDirectoryEntry struct {
+	ID           int    `json:"id"`
 	FirstName    string `json:"first_name"`
 	Surname      string `json:"surname"`
 	Email        string `json:"email"`
@@ -105,7 +106,7 @@ type RefereeDirectoryEntry struct {
 func (db *Database) GetRefereeDirectory() ([]RefereeDirectoryEntry, types.ErrorApi) {
 	rows, cancel, err := db.query(`
 		SELECT
-			u.name, u.surname, u.email, COALESCE(r.phone, ''),
+			r.id, u.name, u.surname, u.email, COALESCE(r.phone, ''),
 			a.postcode, a.city, COALESCE(a.street, ''), a.street_number, COALESCE(a.flat_number, '')
 		FROM referees r
 		JOIN users u ON r.user_id = u.id
@@ -127,6 +128,7 @@ func (db *Database) GetRefereeDirectory() ([]RefereeDirectoryEntry, types.ErrorA
 	for rows.Next() {
 		var entry RefereeDirectoryEntry
 		if err := rows.Scan(
+			&entry.ID,
 			&entry.FirstName,
 			&entry.Surname,
 			&entry.Email,
