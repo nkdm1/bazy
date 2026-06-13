@@ -5,6 +5,8 @@ CREATE TABLE `users` (
   `name` varchar(100) NOT NULL,
   `surname` varchar(100) NOT NULL,
   `role` ENUM ('admin', 'referee', 'viewer') NOT NULL DEFAULT 'viewer',
+  `address_id` integer,
+  `phone` varchar(255),
   `created_at` timestamp NOT NULL DEFAULT (now()),
   `deleted_at` timestamp
 );
@@ -30,14 +32,12 @@ CREATE TABLE `set_password` (
 
 CREATE TABLE `referees` (
   `id` integer PRIMARY KEY AUTO_INCREMENT,
-  `address_id` integer NOT NULL,
-  `user_id` integer UNIQUE NOT NULL,
-  `phone` varchar(255)
+  `user_id` integer UNIQUE NOT NULL
 );
 
 CREATE TABLE `set_phone` (
   `id` integer PRIMARY KEY AUTO_INCREMENT,
-  `referee_id` integer NOT NULL,
+  `user_id` integer NOT NULL,
   `new_phone` varchar(255) NOT NULL,
   `token_hash` varchar(255) UNIQUE NOT NULL,
   `created_at` timestamp NOT NULL DEFAULT (now()),
@@ -190,9 +190,9 @@ ALTER TABLE `licenses` ADD FOREIGN KEY (`license_name_id`) REFERENCES `licenses_
 
 ALTER TABLE `venues` ADD FOREIGN KEY (`address_id`) REFERENCES `address` (`id`);
 
-ALTER TABLE `referees` ADD FOREIGN KEY (`address_id`) REFERENCES `address` (`id`);
+ALTER TABLE `users` ADD FOREIGN KEY (`address_id`) REFERENCES `address` (`id`);
 
-ALTER TABLE `set_phone` ADD FOREIGN KEY (`referee_id`) REFERENCES `referees` (`id`);
+ALTER TABLE `set_phone` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 
 -- Seed default admin account
 INSERT INTO `users` (`email`, `password_hash`, `name`, `surname`, `role`)
