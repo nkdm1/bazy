@@ -97,3 +97,77 @@ func hex2bytes(s string) ([]byte, error) {
 func encodeHex(b []byte) string {
 	return hex.EncodeToString(b)
 }
+
+func TestUpdateUserProfile(t *testing.T) {
+	db := testDB(t)
+
+	t.Run("successfully updates user profile", func(t *testing.T) {
+		userID, cleanupUser := createTestUser(t, db)
+		defer cleanupUser()
+
+		err := db.UpdateUserProfile(userID, "123456789", "00-001", "Warsaw", "Main St", "10", "A")
+		if err != nil {
+			t.Fatalf("expected no error, got: %v", err)
+		}
+
+		// check if address was created
+		var addressID int
+		var phone string
+		row, cancel := db.queryRow("SELECT address_id, phone FROM users WHERE id = ?", userID)
+		scanErr := row.Scan(&addressID, &phone)
+		cancel()
+		if scanErr != nil {
+			t.Fatalf("failed to fetch user after profile update: %v", scanErr)
+		}
+
+		if phone != "123456789" {
+			t.Errorf("expected phone 123456789, got %v", phone)
+		}
+
+		if addressID <= 0 {
+			t.Errorf("expected positive address ID, got %d", addressID)
+		}
+	})
+}
+
+func TestApplyReferee(t *testing.T) {
+	db := testDB(t)
+
+	t.Run("successfully applies as referee with complete profile", func(t *testing.T) {
+		userID, cleanupUser := createTestUser(t, db)
+		defer cleanupUser()
+
+		// Fill the profile first
+		err := db.UpdateUserProfile(userID, "987654321", "11-111", "Krakow", "Long St", "20", "")
+		if err != nil {
+			t.Fatalf("failed to update profile: %v", err)
+		}
+
+		apiErr := db.ApplyReferee(userID)
+		if apiErr != nil {
+			t.Fatalf("expected no error, got: %v", apiErr)
+		}
+
+		// check if role was updated
+		role, roleErr := db.GetUserRole(userID)
+		if roleErr != nil {
+			t.Fatalf("failed to get user role: %v", roleErr)
+		}
+		if role != "referee" {
+			t.Errorf("expected role referee, got %s", role)
+		}
+	})
+
+	t.Run("fails to apply with incomplete profile", func(t *testing.T) {
+		userID, cleanupUser := createTestUser(t, db)
+		defer cleanupUser()
+
+		apiErr := db.ApplyReferee(userID)
+		if apiErr == nil {
+			t.Fatal("expected error, got nil")
+		}
+		if !errors.Is(apiErr, types.ErrInvalidPayload) {
+			t.Errorf("expected ErrInvalidPayload, got: %v", apiErr)
+		}
+	})
+}

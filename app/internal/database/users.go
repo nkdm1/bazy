@@ -83,6 +83,22 @@ func (db *Database) UpdateUserProfile(userID int, phone, postcode, city, street,
 	if street != "" {
 		streetPtr = &street
 	}
+	var phonePtr *string
+	if phone != "" {
+		phonePtr = &phone
+	}
+	var postcodePtr *string
+	if postcode != "" {
+		postcodePtr = &postcode
+	}
+	var cityPtr *string
+	if city != "" {
+		cityPtr = &city
+	}
+	var stNumPtr *string
+	if streetNumber != "" {
+		stNumPtr = &streetNumber
+	}
 
 	// check if user has address_id
 	var addressID sql.NullInt64
@@ -102,7 +118,7 @@ func (db *Database) UpdateUserProfile(userID int, phone, postcode, city, street,
 			UPDATE address
 			SET postcode = ?, city = ?, street = ?, street_number = ?, flat_number = ?
 			WHERE id = ?;
-		`, postcode, city, streetPtr, streetNumber, flatNumPtr, addressID.Int64)
+		`, postcodePtr, cityPtr, streetPtr, stNumPtr, flatNumPtr, addressID.Int64)
 		if err != nil {
 			return types.ErrInternalServer
 		}
@@ -111,7 +127,7 @@ func (db *Database) UpdateUserProfile(userID int, phone, postcode, city, street,
 		res, err := db.exec(`
 			INSERT INTO address (postcode, city, street, street_number, flat_number)
 			VALUES (?, ?, ?, ?, ?);
-		`, postcode, city, streetPtr, streetNumber, flatNumPtr)
+		`, postcodePtr, cityPtr, streetPtr, stNumPtr, flatNumPtr)
 		if err != nil {
 			return types.ErrInternalServer
 		}
@@ -122,7 +138,7 @@ func (db *Database) UpdateUserProfile(userID int, phone, postcode, city, street,
 		}
 	}
 
-	_, err = db.exec(`UPDATE users SET phone = ? WHERE id = ?`, phone, userID)
+	_, err = db.exec(`UPDATE users SET phone = ? WHERE id = ?`, phonePtr, userID)
 	if err != nil {
 		return types.ErrInternalServer
 	}
@@ -143,7 +159,20 @@ func (db *Database) ApplyReferee(userID int) types.ErrorApi {
 		return types.ErrInternalServer
 	}
 
-	if !phone.Valid || !addressID.Valid {
+	if !phone.Valid || phone.String == "" || !addressID.Valid {
+		return types.ErrInvalidPayload // incomplete profile
+	}
+	
+	// Also check if the address actually has city, postcode, etc.
+	var postcode, city, streetNum sql.NullString
+	addrRow, addrCancel := db.queryRow("SELECT postcode, city, street_number FROM address WHERE id = ?", addressID.Int64)
+	if err := addrRow.Scan(&postcode, &city, &streetNum); err != nil {
+		addrCancel()
+		return types.ErrInternalServer
+	}
+	addrCancel()
+	
+	if !postcode.Valid || postcode.String == "" || !city.Valid || city.String == "" || !streetNum.Valid || streetNum.String == "" {
 		return types.ErrInvalidPayload // incomplete profile
 	}
 

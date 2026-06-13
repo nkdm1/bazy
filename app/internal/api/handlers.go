@@ -50,7 +50,7 @@ func (a *Api) login(w http.ResponseWriter, r *http.Request) {
 
 	// call database via a.Database methods
 	// create these methods yourself in internal/database/<filename>.go
-	userId, hash, dbErr := a.Database.GetPasswordHash(email) // TODO: change so password is taken from auth token and user id is taken from func GetUserByEmail()
+	userId, hash, dbErr := a.Database.GetPasswordHash(email)
 	if dbErr != nil {
 		fail(w, dbErr)
 		return
@@ -409,6 +409,11 @@ func (a *Api) rateRefereePerformance(w http.ResponseWriter, r *http.Request) {
 	})
 	if err := loadPayload(payload, r.Body); err != nil {
 		fail(w, err)
+		return
+	}
+
+	if *payload.Rating < 1 || *payload.Rating > 5 {
+		fail(w, types.ErrInvalidPayload)
 		return
 	}
 
@@ -1247,27 +1252,29 @@ func (a *Api) getMonthlyPayoutReport(w http.ResponseWriter, r *http.Request) {
 // updateUserProfile allows an authenticated user to update their phone and address
 func (a *Api) updateUserProfile(w http.ResponseWriter, r *http.Request) {
 	payload := new(struct {
-		Phone        *string `json:"phone"`
-		Postcode     *string `json:"postcode"`
-		City         *string `json:"city"`
-		Street       string  `json:"street"`
-		StreetNumber *string `json:"street_number"`
-		FlatNumber   string  `json:"flat_number"`
+		Phone        string `json:"phone"`
+		Postcode     string `json:"postcode"`
+		City         string `json:"city"`
+		Street       string `json:"street"`
+		StreetNumber string `json:"street_number"`
+		FlatNumber   string `json:"flat_number"`
 	})
 	if err := loadPayload(payload, r.Body); err != nil {
 		fail(w, err)
 		return
 	}
 
-	postcode := *payload.Postcode
-	if len(postcode) != 6 || postcode[2] != '-' {
-		fail(w, types.ErrInvalidPayload)
-		return
+	postcode := payload.Postcode
+	if postcode != "" {
+		if len(postcode) != 6 || postcode[2] != '-' {
+			fail(w, types.ErrInvalidPayload)
+			return
+		}
 	}
 
 	userID := r.Context().Value(UserIdKey).(int)
 	
-	if err := a.Database.UpdateUserProfile(userID, *payload.Phone, postcode, *payload.City, payload.Street, *payload.StreetNumber, payload.FlatNumber); err != nil {
+	if err := a.Database.UpdateUserProfile(userID, payload.Phone, postcode, payload.City, payload.Street, payload.StreetNumber, payload.FlatNumber); err != nil {
 		fail(w, err)
 		return
 	}
