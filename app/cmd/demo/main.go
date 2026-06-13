@@ -395,7 +395,7 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 2: REFEREE ONBOARDING",
 			Desc:    "New user registers an account",
-			Caller:  "Normal User",
+			Caller:  "Normal User (john@referee.com)",
 			Method:  "POST",
 			Path:    "/register/",
 			Payload: func() interface{} { return map[string]interface{}{"name": "John", "surname": "Whistle", "email": "john@referee.com"} },
@@ -414,7 +414,7 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 2: REFEREE ONBOARDING",
 			Desc:    "New user confirms their email",
-			Caller:  "Normal User",
+			Caller:  "Normal User (john@referee.com)",
 			Method:  "POST",
 			Path:    "/register/confirm",
 			Payload: func() interface{} { return map[string]interface{}{"token": regToken, "new_password": "password"} },
@@ -425,7 +425,7 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 2: REFEREE ONBOARDING",
 			Desc:    "Users update their profile and apply to become referees (Silent bulk)",
-			Caller:  "User",
+			Caller:  "User (john@referee.com)",
 			Method:  "POST",
 			MultiPath: []string{"/user/profile", "/user/applyReferee"},
 			RawBody: func() string {
@@ -478,7 +478,7 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 2: REFEREE ONBOARDING",
 			Desc:    "Referee logs in",
-			Caller:  "Referee",
+			Caller:  "Referee (john@referee.com)",
 			Method:  "POST",
 			Path:    "/login",
 			Payload: func() interface{} { return map[string]interface{}{"email": "john@referee.com", "password": "password"} },
@@ -491,7 +491,7 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 2: REFEREE ONBOARDING",
 			Desc:    "Referees submit external license validation requests (Silent bulk)",
-			Caller:  "Referee",
+			Caller:  "Referee (john@referee.com)",
 			Method:  "POST",
 			MultiPath: []string{"/referee/license", "/referee/license", "/referee/license"},
 			RawBody: func() string {
@@ -507,7 +507,7 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 2: REFEREE ONBOARDING",
 			Desc:    "Referee sets their availability",
-			Caller:  "Referee",
+			Caller:  "Referee (john@referee.com)",
 			Method:  "POST",
 			Path:    "/referee/availability",
 			Payload: func() interface{} { return map[string]interface{}{"date": "2026-06-15"} },
@@ -534,7 +534,7 @@ func getSteps() []Step {
 		{
 			Scene:  "SCENE 3: MATCH ASSIGNMENT",
 			Desc:   "Referee views pending assignments",
-			Caller:  "Referee",
+			Caller:  "Referee (john@referee.com)",
 			Method: "GET",
 			Path:   "/referee/assignments/pending",
 			Payload: nil,
@@ -546,7 +546,7 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 3: MATCH ASSIGNMENT",
 			Desc:    "Referee accepts the assignment",
-			Caller:  "Referee",
+			Caller:  "Referee (john@referee.com)",
 			Method:  "POST",
 			Path:    "/referee/assignment/respond",
 			Payload: func() interface{} { return map[string]interface{}{"match_id": matchID, "accept": true} },
@@ -559,7 +559,7 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 3: MATCH ASSIGNMENT",
 			Desc:    "Referee submits final score for the match",
-			Caller:  "Referee",
+			Caller:  "Referee (john@referee.com)",
 			Method:  "POST",
 			Path:    "/referee/match/score",
 			Payload: func() interface{} { return map[string]interface{}{"match_id": matchID, "home_team_points": 2, "away_team_points": 1} },
@@ -574,7 +574,7 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 4: NORMAL USER ACTIVITY",
 			Desc:    "Normal user logs in",
-			Caller:  "Normal User",
+			Caller:  "Normal User (john@referee.com)",
 			Method:  "POST",
 			Path:    "/login",
 			Payload: func() interface{} { return map[string]interface{}{"email": "bob@fan.com", "password": "password"} },
@@ -593,7 +593,7 @@ func getSteps() []Step {
 		{
 			Scene:  "SCENE 4: NORMAL USER ACTIVITY",
 			Desc:   "Normal user queries completed matches",
-			Caller:  "Normal User",
+			Caller:  "Normal User (john@referee.com)",
 			Method: "GET",
 			Path:   "/matches/completed",
 			Do: func() string {
@@ -603,7 +603,7 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 4: NORMAL USER ACTIVITY",
 			Desc:    "Normal user submits a 5-star review for the referee",
-			Caller:  "Normal User",
+			Caller:  "Normal User (john@referee.com)",
 			Method:  "POST",
 			Path:    "/user/rate",
 			Payload: func() interface{} { return map[string]interface{}{"referee_id": refereeID, "match_id": matchID, "rating": 5} },
@@ -647,7 +647,7 @@ func getSteps() []Step {
 		{
 			Scene:  "SCENE 5: PAYOUT PROCESSING",
 			Desc:   "Referee views their payout history",
-			Caller:  "Referee",
+			Caller:  "Referee (john@referee.com)",
 			Method: "GET",
 			Path:   "/referee/payouts",
 			Do: func() string {
