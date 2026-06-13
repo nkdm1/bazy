@@ -26,6 +26,7 @@ func (a *Api) Mount() http.Handler {
 		r.Get("/status", a.status)
 		r.Get("/matches/upcoming", a.getUpcomingMatches)
 		r.Get("/matches/completed", a.getCompletedMatches)
+		r.Get("/matches/{match_id}", a.getMatchDetails)
 		r.Route("/forgotPassword", func(r chi.Router) {
 			r.Post("/", a.forgotPassword)
 			r.Post("/confirm", a.updatePassword)

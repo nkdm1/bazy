@@ -202,3 +202,43 @@ func TestGetCompletedMatches(t *testing.T) {
 		t.Errorf("expected away team points 70, got %v", found.AwayTeamPoints)
 	}
 }
+
+func TestGetMatchDetails(t *testing.T) {
+	db := testDB(t)
+
+	matchID, _, _, cleanupMatch := createTestMatch(t, db, "scheduled", 2)
+	defer cleanupMatch()
+
+	refereeID, cleanupReferee := createTestReferee(t, db)
+	defer cleanupReferee()
+
+	_, cleanupAssignment := createTestMatchAssignment(t, db, refereeID, matchID)
+	defer cleanupAssignment()
+
+	db.exec(`UPDATE matches SET home_team_points = 80, away_team_points = 70 WHERE id = ?`, matchID)
+
+	matchDetails, apiErr := db.GetMatchDetails(matchID)
+	if apiErr != nil {
+		t.Fatalf("expected no error, got: %v", apiErr)
+	}
+
+	if matchDetails.ID != matchID {
+		t.Errorf("expected match ID %d, got %d", matchID, matchDetails.ID)
+	}
+
+	if len(matchDetails.Assignments) != 1 {
+		t.Fatalf("expected 1 assignment, got %d", len(matchDetails.Assignments))
+	}
+	
+	if matchDetails.Assignments[0].Role != "umpire" {
+		t.Errorf("expected role umpire, got %s", matchDetails.Assignments[0].Role)
+	}
+
+	if matchDetails.HomeTeamPoints == nil || *matchDetails.HomeTeamPoints != 80 {
+		t.Errorf("expected home team points 80, got %v", matchDetails.HomeTeamPoints)
+	}
+
+	if matchDetails.AwayTeamPoints == nil || *matchDetails.AwayTeamPoints != 70 {
+		t.Errorf("expected away team points 70, got %v", matchDetails.AwayTeamPoints)
+	}
+}

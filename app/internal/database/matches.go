@@ -336,3 +336,89 @@ func (db *Database) GetCompletedMatches() ([]CompletedMatch, types.ErrorApi) {
 	}
 	return matches, nil
 }
+
+type MatchDetails struct {
+	ID             int                `json:"id"`
+	MatchStart     time.Time          `json:"match_start"`
+	MatchEnd       time.Time          `json:"match_end"`
+	LevelOfMatch   string             `json:"level_of_match"`
+	VenueGymName   string             `json:"venue_gym_name"`
+	HomeTeamName   string             `json:"home_team_name"`
+	AwayTeamName   string             `json:"away_team_name"`
+	Status         string             `json:"status"`
+	HomeTeamPoints *int               `json:"home_team_points"`
+	AwayTeamPoints *int               `json:"away_team_points"`
+	Assignments    []AssignmentDetail `json:"assignments"`
+}
+
+func (db *Database) GetMatchDetails(matchID int) (MatchDetails, types.ErrorApi) {
+	query := `
+		SELECT 
+			m.id, 
+			m.match_start, 
+			m.match_end, 
+			m.level_of_match,
+			m.status,
+			v.gym_name,
+			ht.name as home_team,
+			at.name as away_team,
+			m.home_team_points,
+			m.away_team_points
+		FROM matches m
+		JOIN venues v ON m.venue_id = v.id
+		JOIN teams ht ON m.home_team_id = ht.id
+		JOIN teams at ON m.away_team_id = at.id
+		WHERE m.id = ?
+	`
+	row, cancel := db.queryRow(query, matchID)
+	defer cancel()
+
+	var m MatchDetails
+	var homePts, awayPts sql.NullInt64
+	if err := row.Scan(&m.ID, &m.MatchStart, &m.MatchEnd, &m.LevelOfMatch, &m.Status, &m.VenueGymName, &m.HomeTeamName, &m.AwayTeamName, &homePts, &awayPts); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return MatchDetails{}, types.ErrNotFound
+		}
+		log.Printf("[ERROR]: DB error scanning match details: %v", err)
+		return MatchDetails{}, types.ErrInternalServer
+	}
+	if homePts.Valid {
+		pts := int(homePts.Int64)
+		m.HomeTeamPoints = &pts
+	}
+	if awayPts.Valid {
+		pts := int(awayPts.Int64)
+		m.AwayTeamPoints = &pts
+	}
+
+	assignQuery := `
+		SELECT 
+			u.name,
+			u.surname,
+			r.match_role
+		FROM match_assignments ma
+		JOIN role_in_match r ON ma.role = r.id
+		JOIN referees ref ON ma.referee_id = ref.id
+		JOIN users u ON ref.user_id = u.id
+		WHERE ma.match_id = ?
+	`
+	aRows, aCancel, aErr := db.query(assignQuery, matchID)
+	defer aCancel()
+	if aErr != nil {
+		log.Printf("[ERROR]: DB error fetching assignments: %v", aErr)
+		return MatchDetails{}, types.ErrInternalServer
+	}
+	defer aRows.Close()
+
+	m.Assignments = []AssignmentDetail{}
+	for aRows.Next() {
+		var ad AssignmentDetail
+		if err := aRows.Scan(&ad.RefereeName, &ad.RefereeSurname, &ad.Role); err != nil {
+			log.Printf("[ERROR]: DB error scanning assignment: %v", err)
+			return MatchDetails{}, types.ErrInternalServer
+		}
+		m.Assignments = append(m.Assignments, ad)
+	}
+
+	return m, nil
+}

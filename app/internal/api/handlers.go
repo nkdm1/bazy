@@ -10,9 +10,11 @@ import (
 	"maps"
 	"net/http"
 	"reflect"
+	"strconv"
 	"strings"
 	"time"
 
+	"github.com/go-chi/chi/v5"
 	"github.com/nkdm1/bazy/internal/misc"
 	"github.com/nkdm1/bazy/internal/types"
 )
@@ -832,4 +834,21 @@ func (a *Api) getCompletedMatches(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	ok(w, http.StatusOK, "completed matches", matches)
+}
+
+func (a *Api) getMatchDetails(w http.ResponseWriter, r *http.Request) {
+	matchIDStr := chi.URLParam(r, "match_id")
+	matchID, err := strconv.Atoi(matchIDStr)
+	if err != nil {
+		fail(w, types.ErrInvalidPayload)
+		return
+	}
+
+	details, apiErr := a.Database.GetMatchDetails(matchID)
+	if apiErr != nil {
+		fail(w, apiErr)
+		return
+	}
+
+	ok(w, http.StatusOK, "match details", details)
 }
