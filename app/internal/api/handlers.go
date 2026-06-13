@@ -412,6 +412,40 @@ func (a *Api) rateRefereePerformance(w http.ResponseWriter, r *http.Request) {
 	ok(w, http.StatusOK, "performance rated successfully", nil)
 }
 
+// updateWages inserts a new row into the wages table for the given match level
+// and role, with valid_from set to today. This preserves historical fee records
+// while applying the new fee to future payouts.
+func (a *Api) updateWages(w http.ResponseWriter, r *http.Request) {
+	payload := new(struct {
+		MatchLevel *string  `json:"match_level"`
+		MatchRole  *string  `json:"match_role"`
+		Fee        *float64 `json:"fee"`
+	})
+	if err := loadPayload(payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	matchLevelID, err := a.Database.GetMatchLevelID(*payload.MatchLevel)
+	if err != nil {
+		fail(w, types.ErrNotFound)
+		return
+	}
+
+	roleInMatchID, err := a.Database.GetRoleInMatchID(*payload.MatchRole)
+	if err != nil {
+		fail(w, types.ErrNotFound)
+		return
+	}
+
+	if err := a.Database.InsertWage(matchLevelID, roleInMatchID, *payload.Fee); err != nil {
+		fail(w, err)
+		return
+	}
+
+	ok(w, http.StatusCreated, "wages updated", nil)
+}
+
 // =========================================================================
 // HELPER FUNCTIONS
 // =========================================================================

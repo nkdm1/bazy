@@ -39,6 +39,11 @@ func (a *Api) Mount() http.Handler {
 			r.Post("/rate", a.rateRefereePerformance)
 			r.Post("/referee", a.setRefereeProfile)
 		})
+		r.Route("/admin", func(r chi.Router) {
+			r.Use(a.authorize)
+			r.Use(a.adminOnly)
+			r.Post("/wages", a.updateWages)
+		})
 		r.Route("/register", func(r chi.Router) {
 			r.Post("/", a.register)
 			r.Post("/confirm", a.updatePassword)
