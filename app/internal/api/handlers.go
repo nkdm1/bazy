@@ -150,6 +150,36 @@ func (a *Api) logout(w http.ResponseWriter, r *http.Request) {
 	ok(w, http.StatusOK, "logged out", nil)
 }
 
+// deleteAccount soft-deletes the authenticated user's account by setting deleted_at
+// to the current timestamp, then invalidates all their active sessions.
+func (a *Api) deleteAccount(w http.ResponseWriter, r *http.Request) {
+	userId := r.Context().Value(UserIdKey).(int)
+
+	if err := a.Database.SoftDeleteUser(userId); err != nil {
+		fail(w, err)
+		return
+	}
+
+	// Invalidate all sessions so the user is logged out everywhere immediately.
+	if err := a.Database.InvalidateAllUserSessions(userId); err != nil {
+		fail(w, err)
+		return
+	}
+
+	// Expire the current session cookie on the client side.
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_id",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   -1,
+	})
+
+	ok(w, http.StatusOK, "account deleted", nil)
+}
+
 func (a *Api) requestNewPassword(w http.ResponseWriter, r *http.Request) {
 	userId := r.Context().Value(UserIdKey).(int)
 
