@@ -1125,6 +1125,7 @@ func (a *Api) getRefereeReviews(w http.ResponseWriter, r *http.Request) {
 
 type PayloadRefereeIDs struct {
 	RefereeIDs []int `json:"referee_ids"`
+	All        bool  `json:"all"`
 }
 
 func (a *Api) getPendingPayouts(w http.ResponseWriter, r *http.Request) {
@@ -1134,7 +1135,12 @@ func (a *Api) getPendingPayouts(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	payouts, dbErr := a.Database.GetPendingPayouts(payload.RefereeIDs)
+	if !payload.All && len(payload.RefereeIDs) == 0 {
+		fail(w, types.ErrInvalidPayload)
+		return
+	}
+
+	payouts, dbErr := a.Database.GetPendingPayouts(payload.RefereeIDs, payload.All)
 	if dbErr != nil {
 		fail(w, dbErr)
 		return
@@ -1150,7 +1156,12 @@ func (a *Api) markPayoutsSent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if dbErr := a.Database.MarkPayoutsSent(payload.RefereeIDs); dbErr != nil {
+	if !payload.All && len(payload.RefereeIDs) == 0 {
+		fail(w, types.ErrInvalidPayload)
+		return
+	}
+
+	if dbErr := a.Database.MarkPayoutsSent(payload.RefereeIDs, payload.All); dbErr != nil {
 		fail(w, dbErr)
 		return
 	}

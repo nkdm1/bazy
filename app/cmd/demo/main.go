@@ -28,6 +28,7 @@ var (
 	matchID   int
 	refereeID int
 	payoutID  int
+	regToken  string
 
 	// Lipgloss styles
 	titleStyle = lipgloss.NewStyle().
@@ -61,9 +62,10 @@ var (
 type Step struct {
 	Scene   string
 	Desc    string
+	Caller  string
 	Method  string
 	Path    string
-	Payload interface{}
+	Payload func() interface{}
 	Do      func() string // Does the request and extracts state if needed
 }
 
@@ -142,16 +144,17 @@ func (m model) View() string {
 	}
 
 	step := m.steps[m.stepIdx]
-	sceneTitle := lipgloss.NewStyle().Bold(true).Foreground(lipgloss.Color("#E88388")).Render(fmt.Sprintf("--- %s ---", step.Scene))
-	stepTitle := lipgloss.NewStyle().Bold(true).Render(fmt.Sprintf("Step %d: %s", m.stepIdx+1, step.Desc))
+	sceneTitle := lipgloss.NewStyle().Align(lipgloss.Center).Width(m.width).Bold(true).Foreground(lipgloss.Color("#E88388")).Render(fmt.Sprintf("--- %s: %s ---", step.Scene, step.Desc))
+	stepTitle := lipgloss.NewStyle().Bold(true).Render(fmt.Sprintf("Step %d", m.stepIdx+1))
 
 	// Prepare Left Panel
 	var reqBodyBytes []byte
 	if step.Payload != nil {
-		reqBodyBytes, _ = json.MarshalIndent(step.Payload, "", "  ")
+		reqBodyBytes, _ = json.MarshalIndent(step.Payload(), "", "  ")
 	}
 
-	leftContent := reqStyle.Render(fmt.Sprintf("[REQUEST] %s %s", step.Method, baseURL+step.Path))
+	callerText := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFF00")).Bold(true).Render(fmt.Sprintf("Executing as: %s", step.Caller))
+	leftContent := callerText + "\n" + reqStyle.Render(fmt.Sprintf("[REQUEST] %s %s", step.Method, baseURL+step.Path))
 	if step.Payload != nil {
 		leftContent += "\n\nBody:\n" + string(reqBodyBytes)
 	}
@@ -268,9 +271,10 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 1: ADMIN DATA SETUP",
 			Desc:    "Admin logs in to get session cookie",
+			Caller:  "Admin",
 			Method:  "POST",
 			Path:    "/login",
-			Payload: map[string]interface{}{"email": "admin@example.com", "password": "admin"},
+			Payload: func() interface{} { return map[string]interface{}{"email": "admin@example.com", "password": "admin"} },
 			Do: func() string {
 				return doReq(adminClient, "POST", "/login", map[string]interface{}{"email": "admin@example.com", "password": "admin"})
 			},
@@ -278,9 +282,10 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 1: ADMIN DATA SETUP",
 			Desc:    "Admin creates a new Venue",
+			Caller:  "Admin",
 			Method:  "POST",
 			Path:    "/admin/venues",
-			Payload: map[string]interface{}{"gym_name": "Demo Arena", "postcode": "00-001", "city": "Demo City", "street": "Demo St", "street_number": "1"},
+			Payload: func() interface{} { return map[string]interface{}{"gym_name": "Demo Arena", "postcode": "00-001", "city": "Demo City", "street": "Demo St", "street_number": "1"} },
 			Do: func() string {
 				return doReq(adminClient, "POST", "/admin/venues", map[string]interface{}{"gym_name": "Demo Arena", "postcode": "00-001", "city": "Demo City", "street": "Demo St", "street_number": "1"})
 			},
@@ -288,9 +293,10 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 1: ADMIN DATA SETUP",
 			Desc:    "Admin creates Team Alpha",
+			Caller:  "Admin",
 			Method:  "POST",
 			Path:    "/admin/teams",
-			Payload: map[string]interface{}{"name": "Team Alpha", "city": "Alpha City"},
+			Payload: func() interface{} { return map[string]interface{}{"name": "Team Alpha", "city": "Alpha City"} },
 			Do: func() string {
 				return doReq(adminClient, "POST", "/admin/teams", map[string]interface{}{"name": "Team Alpha", "city": "Alpha City"})
 			},
@@ -298,9 +304,10 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 1: ADMIN DATA SETUP",
 			Desc:    "Admin creates Team Beta",
+			Caller:  "Admin",
 			Method:  "POST",
 			Path:    "/admin/teams",
-			Payload: map[string]interface{}{"name": "Team Beta", "city": "Beta City"},
+			Payload: func() interface{} { return map[string]interface{}{"name": "Team Beta", "city": "Beta City"} },
 			Do: func() string {
 				return doReq(adminClient, "POST", "/admin/teams", map[string]interface{}{"name": "Team Beta", "city": "Beta City"})
 			},
@@ -308,9 +315,10 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 1: ADMIN DATA SETUP",
 			Desc:    "Admin schedules a new match",
+			Caller:  "Admin",
 			Method:  "POST",
 			Path:    "/admin/matches",
-			Payload: map[string]interface{}{"home_team_name": "Team Alpha", "away_team_name": "Team Beta", "venue_name": "Demo Arena", "match_level": "fiba", "match_start": "2026-06-15T12:00:00Z", "match_end": "2026-06-15T14:00:00Z"},
+			Payload: func() interface{} { return map[string]interface{}{"home_team_name": "Team Alpha", "away_team_name": "Team Beta", "venue_name": "Demo Arena", "match_level": "fiba", "match_start": "2026-06-15T12:00:00Z", "match_end": "2026-06-15T14:00:00Z"} },
 			Do: func() string {
 				return doReq(adminClient, "POST", "/admin/matches", map[string]interface{}{"home_team_name": "Team Alpha", "away_team_name": "Team Beta", "venue_name": "Demo Arena", "match_level": "fiba", "match_start": "2026-06-15T12:00:00Z", "match_end": "2026-06-15T14:00:00Z"})
 			},
@@ -318,6 +326,7 @@ func getSteps() []Step {
 		{
 			Scene:  "SCENE 1: ADMIN DATA SETUP",
 			Desc:   "Admin views upcoming matches to extract Match ID",
+			Caller:  "Admin",
 			Method: "GET",
 			Path:   "/matches/upcoming",
 			Do: func() string {
@@ -329,9 +338,10 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 1: ADMIN DATA SETUP",
 			Desc:    "Admin sets wages for the FIBA league",
+			Caller:  "Admin",
 			Method:  "POST",
 			Path:    "/admin/wages",
-			Payload: map[string]interface{}{"match_level": "fiba", "match_role": "crew_chief", "fee": 150.0},
+			Payload: func() interface{} { return map[string]interface{}{"match_level": "fiba", "match_role": "crew_chief", "fee": 150.0} },
 			Do: func() string {
 				return doReq(adminClient, "POST", "/admin/wages", map[string]interface{}{"match_level": "fiba", "match_role": "crew_chief", "fee": 150.0})
 			},
@@ -339,9 +349,10 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 2: REFEREE ONBOARDING",
 			Desc:    "New user registers an account",
+			Caller:  "Normal User",
 			Method:  "POST",
 			Path:    "/register/",
-			Payload: map[string]interface{}{"name": "John", "surname": "Whistle", "email": "john@referee.com"},
+			Payload: func() interface{} { return map[string]interface{}{"name": "John", "surname": "Whistle", "email": "john@referee.com"} },
 			Do: func() string {
 				res := doReq(viewerClient, "POST", "/register/", map[string]interface{}{"name": "John", "surname": "Whistle", "email": "john@referee.com"})
 				var rResp struct {
@@ -350,16 +361,28 @@ func getSteps() []Step {
 					} `json:"data"`
 				}
 				json.Unmarshal([]byte(getRawJSON(res)), &rResp)
-				doReq(viewerClient, "POST", "/register/confirm", map[string]interface{}{"token": rResp.Data.Token, "new_password": "password"})
+				regToken = rResp.Data.Token
 				return res
 			},
 		},
 		{
 			Scene:   "SCENE 2: REFEREE ONBOARDING",
+			Desc:    "New user confirms their email",
+			Caller:  "Normal User",
+			Method:  "POST",
+			Path:    "/register/confirm",
+			Payload: func() interface{} { return map[string]interface{}{"token": regToken, "new_password": "password"} },
+			Do: func() string {
+				return doReq(viewerClient, "POST", "/register/confirm", map[string]interface{}{"token": regToken, "new_password": "password"})
+			},
+		},
+		{
+			Scene:   "SCENE 2: REFEREE ONBOARDING",
 			Desc:    "Admin upgrades the user to a Referee",
+			Caller:  "Admin",
 			Method:  "POST",
 			Path:    "/admin/referee",
-			Payload: map[string]interface{}{"email": "john@referee.com", "phone": "123456789", "postcode": "00-001", "city": "Ref City", "street": "Ref St", "street_number": "1", "flat_number": ""},
+			Payload: func() interface{} { return map[string]interface{}{"email": "john@referee.com", "phone": "123456789", "postcode": "00-001", "city": "Ref City", "street": "Ref St", "street_number": "1", "flat_number": ""} },
 			Do: func() string {
 				return doReq(adminClient, "POST", "/admin/referee", map[string]interface{}{"email": "john@referee.com", "phone": "123456789", "postcode": "00-001", "city": "Ref City", "street": "Ref St", "street_number": "1", "flat_number": ""})
 			},
@@ -367,8 +390,10 @@ func getSteps() []Step {
 		{
 			Scene:  "SCENE 2: REFEREE ONBOARDING",
 			Desc:   "Admin fetches Referee Directory to get Referee ID",
+			Caller:  "Admin",
 			Method: "GET",
 			Path:   "/admin/referee/directory",
+			Payload: nil,
 			Do: func() string {
 				res := doReq(adminClient, "GET", "/admin/referee/directory", nil)
 				refereeID = extractRefereeID(res, "john@referee.com")
@@ -378,19 +403,21 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 2: REFEREE ONBOARDING",
 			Desc:    "Referee logs in",
+			Caller:  "Referee",
 			Method:  "POST",
 			Path:    "/login",
-			Payload: map[string]interface{}{"email": "john@referee.com", "password": "password"},
+			Payload: func() interface{} { return map[string]interface{}{"email": "john@referee.com", "password": "password"} },
 			Do: func() string {
 				return doReq(refereeClient, "POST", "/login", map[string]interface{}{"email": "john@referee.com", "password": "password"})
 			},
 		},
 		{
 			Scene:   "SCENE 2: REFEREE ONBOARDING",
-			Desc:    "Referee marks their availability",
+			Desc:    "Referee sets their availability",
+			Caller:  "Referee",
 			Method:  "POST",
 			Path:    "/referee/availability",
-			Payload: map[string]interface{}{"date": "2026-06-15"},
+			Payload: func() interface{} { return map[string]interface{}{"date": "2026-06-15"} },
 			Do: func() string {
 				return doReq(refereeClient, "POST", "/referee/availability", map[string]interface{}{"date": "2026-06-15"})
 			},
@@ -398,9 +425,10 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 3: MATCH ASSIGNMENT",
 			Desc:    "Admin assigns Referee to the Match",
+			Caller:  "Admin",
 			Method:  "POST",
 			Path:    "/admin/match/assign",
-			Payload: map[string]interface{}{"role": "crew_chief"}, // MatchID and RefereeID added dynamically in Do
+			Payload: func() interface{} { return map[string]interface{}{"match_id": matchID, "referee_id": refereeID, "role": "crew_chief"} },
 			Do: func() string {
 				return doReq(adminClient, "POST", "/admin/match/assign", map[string]interface{}{"match_id": matchID, "referee_id": refereeID, "role": "crew_chief"})
 			},
@@ -408,8 +436,10 @@ func getSteps() []Step {
 		{
 			Scene:  "SCENE 3: MATCH ASSIGNMENT",
 			Desc:   "Referee views pending assignments",
+			Caller:  "Referee",
 			Method: "GET",
 			Path:   "/referee/assignments/pending",
+			Payload: nil,
 			Do: func() string {
 				res := doReq(refereeClient, "GET", "/referee/assignments/pending", nil)
 				return res
@@ -418,9 +448,10 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 3: MATCH ASSIGNMENT",
 			Desc:    "Referee accepts the assignment",
+			Caller:  "Referee",
 			Method:  "POST",
 			Path:    "/referee/assignment/respond",
-			Payload: map[string]interface{}{"accept": true}, // match_id added dynamically
+			Payload: func() interface{} { return map[string]interface{}{"match_id": matchID, "accept": true} },
 			Do: func() string {
 				return doReq(refereeClient, "POST", "/referee/assignment/respond", map[string]interface{}{"match_id": matchID, "accept": true})
 			},
@@ -428,19 +459,25 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 3: MATCH ASSIGNMENT",
 			Desc:    "Referee submits final score for the match",
+			Caller:  "Referee",
 			Method:  "POST",
 			Path:    "/referee/match/score",
-			Payload: map[string]interface{}{"home_team_points": 2, "away_team_points": 1}, // match_id added dynamically
+			Payload: func() interface{} { return map[string]interface{}{"match_id": matchID, "home_team_points": 2, "away_team_points": 1} },
 			Do: func() string {
+				// Fast forward match end time to past so submission is valid
+				db, _ := sql.Open("mysql", "root:root@tcp(ubuntu:3306)/db?parseTime=true")
+				db.Exec("UPDATE matches SET match_end = NOW() - INTERVAL 1 HOUR WHERE id = ?", matchID)
+				db.Close()
 				return doReq(refereeClient, "POST", "/referee/match/score", map[string]interface{}{"match_id": matchID, "home_team_points": 2, "away_team_points": 1})
 			},
 		},
 		{
 			Scene:   "SCENE 4: NORMAL USER ACTIVITY",
 			Desc:    "Normal user logs in",
+			Caller:  "Normal User",
 			Method:  "POST",
 			Path:    "/login",
-			Payload: map[string]interface{}{"email": "bob@fan.com", "password": "password"},
+			Payload: func() interface{} { return map[string]interface{}{"email": "bob@fan.com", "password": "password"} },
 			Do: func() string {
 				res := doReq(viewerClient, "POST", "/register/", map[string]interface{}{"name": "Bob", "surname": "Fan", "email": "bob@fan.com"})
 				var rResp struct {
@@ -456,6 +493,7 @@ func getSteps() []Step {
 		{
 			Scene:  "SCENE 4: NORMAL USER ACTIVITY",
 			Desc:   "Normal user queries completed matches",
+			Caller:  "Normal User",
 			Method: "GET",
 			Path:   "/matches/completed",
 			Do: func() string {
@@ -465,9 +503,10 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 4: NORMAL USER ACTIVITY",
 			Desc:    "Normal user submits a 5-star review for the referee",
+			Caller:  "Normal User",
 			Method:  "POST",
 			Path:    "/user/rate",
-			Payload: map[string]interface{}{"rating": 5}, // match_id, referee_id added
+			Payload: func() interface{} { return map[string]interface{}{"referee_id": refereeID, "match_id": matchID, "rating": 5} },
 			Do: func() string {
 				return doReq(viewerClient, "POST", "/user/rate", map[string]interface{}{"referee_id": refereeID, "match_id": matchID, "rating": 5})
 			},
@@ -475,26 +514,29 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 5: PAYOUT PROCESSING",
 			Desc:    "Admin fetches pending payouts",
+			Caller:  "Admin",
 			Method:  "POST",
 			Path:    "/admin/payouts/pending",
-			Payload: map[string]interface{}{"referee_ids": []int{}}, // dynamically updated
+			Payload: func() interface{} { return map[string]interface{}{"all": true} },
 			Do: func() string {
-				return doReq(adminClient, "POST", "/admin/payouts/pending", map[string]interface{}{"referee_ids": []int{refereeID}})
+				return doReq(adminClient, "POST", "/admin/payouts/pending", map[string]interface{}{"all": true})
 			},
 		},
 		{
 			Scene:   "SCENE 5: PAYOUT PROCESSING",
 			Desc:    "Admin marks payouts as sent",
+			Caller:  "Admin",
 			Method:  "POST",
 			Path:    "/admin/payouts/sent",
-			Payload: map[string]interface{}{"referee_ids": []int{}},
+			Payload: func() interface{} { return map[string]interface{}{"all": true} },
 			Do: func() string {
-				return doReq(adminClient, "POST", "/admin/payouts/sent", map[string]interface{}{"referee_ids": []int{refereeID}})
+				return doReq(adminClient, "POST", "/admin/payouts/sent", map[string]interface{}{"all": true})
 			},
 		},
 		{
 			Scene:  "SCENE 5: PAYOUT PROCESSING",
 			Desc:   "Referee views their payout history",
+			Caller:  "Referee",
 			Method: "GET",
 			Path:   "/referee/payouts",
 			Do: func() string {
@@ -506,9 +548,10 @@ func getSteps() []Step {
 		{
 			Scene:   "SCENE 5: PAYOUT PROCESSING",
 			Desc:    "Admin confirms bank transfer payout",
+			Caller:  "Admin",
 			Method:  "POST",
 			Path:    "/admin/payouts/confirm",
-			Payload: map[string]interface{}{"confirmations": []map[string]interface{}{{"bank_transaction_id": "TX_999888777"}}}, // payout_id
+			Payload: func() interface{} { return map[string]interface{}{"confirmations": []map[string]interface{}{{"bank_transaction_id": "TX_999888777"}}} },
 			Do: func() string {
 				return doReq(adminClient, "POST", "/admin/payouts/confirm", map[string]interface{}{
 					"confirmations": []map[string]interface{}{{"payout_id": payoutID, "bank_transaction_id": "TX_999888777"}},
@@ -518,6 +561,7 @@ func getSteps() []Step {
 		{
 			Scene:  "SCENE 5: PAYOUT PROCESSING",
 			Desc:   "Admin reviews the monthly payout report",
+			Caller:  "Admin",
 			Method: "GET",
 			Path:   "/admin/payouts/report?year=2026&month=6",
 			Do: func() string {

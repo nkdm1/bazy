@@ -31,6 +31,21 @@ func (db *Database) RateRefereePerformance(refereeID, matchID, rating, createdBy
 		return types.ErrInvalidPayload // Or a more specific error like match not finished
 	}
 
+	checkRefRow, cancelCheckRef := db.queryRow(`
+		SELECT id FROM match_assignments 
+		WHERE match_id = ? AND referee_id = ? AND assignment_status = 'accepted'
+	`, matchID, refereeID)
+	var dummy int
+	if err := checkRefRow.Scan(&dummy); err != nil {
+		cancelCheckRef()
+		if errors.Is(err, sql.ErrNoRows) {
+			return types.ErrForbidden // Referee did not attend
+		}
+		log.Printf("[ERROR]: Database failure while checking referee attendance: %v", err)
+		return types.ErrInternalServer
+	}
+	cancelCheckRef()
+
 	_, err := db.exec(`
 		INSERT INTO reviews (referee_id, match_id, rating, created_by)
 		VALUES (?, ?, ?, ?);

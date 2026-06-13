@@ -129,8 +129,8 @@ type PendingPayout struct {
 	Amount    float64 `json:"amount"`
 }
 
-func (db *Database) GetPendingPayouts(refereeIDs []int) ([]PendingPayout, types.ErrorApi) {
-	if len(refereeIDs) == 0 {
+func (db *Database) GetPendingPayouts(refereeIDs []int, all bool) ([]PendingPayout, types.ErrorApi) {
+	if !all && len(refereeIDs) == 0 {
 		return []PendingPayout{}, nil
 	}
 
@@ -138,17 +138,22 @@ func (db *Database) GetPendingPayouts(refereeIDs []int) ([]PendingPayout, types.
 		SELECT ma.referee_id, SUM(p.amount) 
 		FROM payouts p
 		JOIN match_assignments ma ON p.assignment_id = ma.id
-		WHERE p.status = 'pending' AND ma.referee_id IN (`
+		WHERE p.status = 'pending'`
 	
-	args := make([]interface{}, len(refereeIDs))
-	for i, id := range refereeIDs {
-		args[i] = id
-		if i > 0 {
-			query += ", "
+	var args []interface{}
+	if !all {
+		query += ` AND ma.referee_id IN (`
+		args = make([]interface{}, len(refereeIDs))
+		for i, id := range refereeIDs {
+			args[i] = id
+			if i > 0 {
+				query += ", "
+			}
+			query += "?"
 		}
-		query += "?"
+		query += `)`
 	}
-	query += `) GROUP BY ma.referee_id`
+	query += ` GROUP BY ma.referee_id`
 
 	rows, cancel, err := db.query(query, args...)
 	defer cancel()
@@ -171,8 +176,8 @@ func (db *Database) GetPendingPayouts(refereeIDs []int) ([]PendingPayout, types.
 	return results, nil
 }
 
-func (db *Database) MarkPayoutsSent(refereeIDs []int) types.ErrorApi {
-	if len(refereeIDs) == 0 {
+func (db *Database) MarkPayoutsSent(refereeIDs []int, all bool) types.ErrorApi {
+	if !all && len(refereeIDs) == 0 {
 		return nil
 	}
 
@@ -180,17 +185,21 @@ func (db *Database) MarkPayoutsSent(refereeIDs []int) types.ErrorApi {
 		UPDATE payouts p
 		JOIN match_assignments ma ON p.assignment_id = ma.id
 		SET p.status = 'sent'
-		WHERE p.status = 'pending' AND ma.referee_id IN (`
+		WHERE p.status = 'pending'`
 	
-	args := make([]interface{}, len(refereeIDs))
-	for i, id := range refereeIDs {
-		args[i] = id
-		if i > 0 {
-			query += ", "
+	var args []interface{}
+	if !all {
+		query += ` AND ma.referee_id IN (`
+		args = make([]interface{}, len(refereeIDs))
+		for i, id := range refereeIDs {
+			args[i] = id
+			if i > 0 {
+				query += ", "
+			}
+			query += "?"
 		}
-		query += "?"
+		query += `)`
 	}
-	query += `)`
 
 	_, err := db.exec(query, args...)
 	if err != nil {

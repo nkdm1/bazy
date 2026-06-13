@@ -684,14 +684,17 @@ func (db *Database) SubmitMatchScore(matchID int, refereeID int, homePoints int,
 	cancelRole()
 
 	checkRow, cancelCheck := db.queryRow(`
-		SELECT id 
-		FROM match_assignments 
-		WHERE match_id = ? AND referee_id = ? AND role = ? AND assignment_status = 'accepted'
+		SELECT ma.id 
+		FROM match_assignments ma
+		JOIN matches m ON ma.match_id = m.id
+		WHERE ma.match_id = ? AND ma.referee_id = ? AND ma.role = ? AND ma.assignment_status = 'accepted'
+		AND m.match_end <= NOW()
 	`, matchID, refereeID, crewChiefRoleID)
 	var dummy int
 	if err := checkRow.Scan(&dummy); err != nil {
 		cancelCheck()
 		if errors.Is(err, sql.ErrNoRows) {
+			log.Printf("[DEBUG]: SubmitMatchScore 403! matchID=%d, refID=%d, roleID=%d", matchID, refereeID, crewChiefRoleID)
 			return types.ErrForbidden
 		}
 		log.Printf("[ERROR]: DB error checking crew chief status: %v", err)
