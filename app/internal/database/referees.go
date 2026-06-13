@@ -65,16 +65,16 @@ func (db *Database) SetUserAsReferee(userID int, phone, postcode, city, street, 
 		return types.ErrInternalServer
 	}
 
-	// Insert into referees table
 	_, err = db.exec(`
-		INSERT INTO referees (user_id, address_id, phone)
-		VALUES (?, ?, ?);
-	`, userID, addressID, phone)
+		UPDATE users SET address_id = ?, phone = ? WHERE id = ?;
+	`, addressID, phone, userID)
 
 	if err != nil {
-		log.Printf("[ERROR]: Failed to insert referee record for user %d: %v", userID, err)
+		log.Printf("[ERROR]: Failed to update user record for user %d: %v", userID, err)
 		return types.ErrInternalServer
 	}
+
+	_, err = db.exec(`INSERT INTO referees (user_id) VALUES (?)`, userID)
 
 	// Optionally update user role to 'referee'
 	_, err = db.exec(`
@@ -106,11 +106,11 @@ type RefereeDirectoryEntry struct {
 func (db *Database) GetRefereeDirectory() ([]RefereeDirectoryEntry, types.ErrorApi) {
 	rows, cancel, err := db.query(`
 		SELECT
-			r.id, u.name, u.surname, u.email, COALESCE(r.phone, ''),
+			r.id, u.name, u.surname, u.email, COALESCE(u.phone, ''),
 			a.postcode, a.city, COALESCE(a.street, ''), a.street_number, COALESCE(a.flat_number, '')
 		FROM referees r
 		JOIN users u ON r.user_id = u.id
-		JOIN address a ON r.address_id = a.id;
+		LEFT JOIN address a ON u.address_id = a.id;
 	`)
 	defer cancel()
 
@@ -178,12 +178,12 @@ type RefereeProfile struct {
 func (db *Database) GetRefereeProfile(userID int) (*RefereeProfile, types.ErrorApi) {
 	row, cancel := db.queryRow(`
 		SELECT
-			u.name, u.surname, u.email, COALESCE(r.phone, ''),
-			a.postcode, a.city, COALESCE(a.street, ''), a.street_number, COALESCE(a.flat_number, ''),
+			u.name, u.surname, u.email, COALESCE(u.phone, ''),
+			COALESCE(a.postcode, ''), COALESCE(a.city, ''), COALESCE(a.street, ''), COALESCE(a.street_number, ''), COALESCE(a.flat_number, ''),
 			r.id
 		FROM users u
 		JOIN referees r ON u.id = r.user_id
-		JOIN address a ON r.address_id = a.id
+		LEFT JOIN address a ON u.address_id = a.id
 		WHERE u.id = ? AND u.deleted_at IS NULL;
 	`, userID)
 	defer cancel()
@@ -286,7 +286,7 @@ func (db *Database) InsertLicense(refereeID, licenseNameID int, licenseNumber st
 }
 
 // CreatePhoneChangeToken generates a verification token and records the phone change request.
-func (db *Database) CreatePhoneChangeToken(refereeID int, newPhone string) (string, types.ErrorApi) {
+func (db *Database) CreatePhoneChangeToken(userID int, newPhone string) (string, types.ErrorApi) {
 	tokenBytes, apiErr := misc.GenerateToken()
 	if apiErr != nil {
 		return "", apiErr
@@ -295,9 +295,9 @@ func (db *Database) CreatePhoneChangeToken(refereeID int, newPhone string) (stri
 	tokenHash := hex.EncodeToString(tokenHashBytes[:])
 
 	_, err := db.exec(`
-		INSERT INTO set_phone (referee_id, new_phone, token_hash)
+		INSERT INTO set_phone (user_id, new_phone, token_hash)
 		VALUES (?, ?, ?);
-	`, refereeID, newPhone, tokenHash)
+	`, userID, newPhone, tokenHash)
 	if err != nil {
 		log.Printf("[ERROR]: Database failure inserting set_phone: %v", err)
 		return "", types.ErrInternalServer
@@ -309,18 +309,18 @@ func (db *Database) CreatePhoneChangeToken(refereeID int, newPhone string) (stri
 // ConsumePhoneChangeToken processes the verification token and applies the new phone.
 func (db *Database) ConsumePhoneChangeToken(tokenHash string) types.ErrorApi {
 	row, cancel := db.queryRow(`
-		SELECT id, referee_id, new_phone, expire_time, status
+		SELECT id, user_id, new_phone, expire_time, status
 		FROM set_phone
 		WHERE token_hash = ?;
 	`, tokenHash)
 	defer cancel()
 
-	var id, refereeID int
+	var id, userID int
 	var newPhone string
 	var expireTime time.Time
 	var status string
 
-	if err := row.Scan(&id, &refereeID, &newPhone, &expireTime, &status); err != nil {
+	if err := row.Scan(&id, &userID, &newPhone, &expireTime, &status); err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return types.ErrInvalidToken
 		}
@@ -340,20 +340,20 @@ func (db *Database) ConsumePhoneChangeToken(tokenHash string) types.ErrorApi {
 		return types.ErrInvalidToken
 	}
 
-	// Verify referee exists in referees table
-	var refereeExists int
-	rowRef, cancelRef := db.queryRow(`SELECT COUNT(*) FROM referees WHERE id = ?`, refereeID)
-	if err := rowRef.Scan(&refereeExists); err != nil {
+	// Verify user exists in users table
+	var userExists int
+	rowRef, cancelRef := db.queryRow(`SELECT COUNT(*) FROM users WHERE id = ?`, userID)
+	if err := rowRef.Scan(&userExists); err != nil {
 		cancelRef()
-		log.Printf("[ERROR]: Database failure checking referee existence: %v", err)
+		log.Printf("[ERROR]: Database failure checking user existence: %v", err)
 		return types.ErrInternalServer
 	}
 	cancelRef()
 
-	if refereeExists > 0 {
-		_, err := db.exec(`UPDATE referees SET phone = ? WHERE id = ?`, newPhone, refereeID)
+	if userExists > 0 {
+		_, err := db.exec(`UPDATE users SET phone = ? WHERE id = ?`, newPhone, userID)
 		if err != nil {
-			log.Printf("[ERROR]: Database failure updating phone in referees: %v", err)
+			log.Printf("[ERROR]: Database failure updating phone in users: %v", err)
 			return types.ErrInternalServer
 		}
 	}
@@ -368,14 +368,14 @@ func (db *Database) ConsumePhoneChangeToken(tokenHash string) types.ErrorApi {
 }
 func (db *Database) GetAvailableReferees(date time.Time) ([]RefereeProfile, types.ErrorApi) {
 	query := `
-		SELECT DISTINCT
-			u.name, u.surname, u.email, COALESCE(r.phone, ''),
-			a.postcode, a.city, COALESCE(a.street, ''), a.street_number, COALESCE(a.flat_number, ''),
-			r.id
-		FROM users u
-		JOIN referees r ON u.id = r.user_id
-		JOIN address a ON r.address_id = a.id
-		JOIN availability av ON r.id = av.referee_id
+			SELECT DISTINCT
+				u.name, u.surname, u.email, COALESCE(u.phone, ''),
+				COALESCE(a.postcode, ''), COALESCE(a.city, ''), COALESCE(a.street, ''), COALESCE(a.street_number, ''), COALESCE(a.flat_number, ''),
+				r.id
+			FROM users u
+			JOIN referees r ON u.id = r.user_id
+			LEFT JOIN address a ON u.address_id = a.id
+			JOIN availability av ON r.id = av.referee_id
 		WHERE u.deleted_at IS NULL
 		  AND av.available_date = ?
 		  AND NOT EXISTS (
@@ -432,4 +432,19 @@ func (db *Database) GetAvailableReferees(date time.Time) ([]RefereeProfile, type
 		list = []RefereeProfile{}
 	}
 	return list, nil
+}
+
+// HasValidLicense checks if a referee has a valid, unexpired license.
+func (db *Database) HasValidLicense(refereeID int) bool {
+	row, cancel := db.queryRow(`
+		SELECT COUNT(*) FROM licenses
+		WHERE referee_id = ? AND expire_at >= CURDATE() AND issued_at <= CURDATE();
+	`, refereeID)
+	defer cancel()
+
+	var count int
+	if err := row.Scan(&count); err != nil {
+		return false
+	}
+	return count > 0
 }

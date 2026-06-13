@@ -72,3 +72,90 @@ func (db *Database) InvalidateAllUserSessions(userID int) types.ErrorApi {
 	}
 	return nil
 }
+
+// UpdateUserProfile updates a user's phone and address.
+func (db *Database) UpdateUserProfile(userID int, phone, postcode, city, street, streetNumber, flatNumber string) types.ErrorApi {
+	var flatNumPtr *string
+	if flatNumber != "" {
+		flatNumPtr = &flatNumber
+	}
+	var streetPtr *string
+	if street != "" {
+		streetPtr = &street
+	}
+
+	// check if user has address_id
+	var addressID sql.NullInt64
+	row, cancel := db.queryRow(`SELECT address_id FROM users WHERE id = ?`, userID)
+	err := row.Scan(&addressID)
+	cancel()
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return types.ErrNotFound
+		}
+		return types.ErrInternalServer
+	}
+
+	if addressID.Valid {
+		// update existing address
+		_, err = db.exec(`
+			UPDATE address
+			SET postcode = ?, city = ?, street = ?, street_number = ?, flat_number = ?
+			WHERE id = ?;
+		`, postcode, city, streetPtr, streetNumber, flatNumPtr, addressID.Int64)
+		if err != nil {
+			return types.ErrInternalServer
+		}
+	} else {
+		// insert new address
+		res, err := db.exec(`
+			INSERT INTO address (postcode, city, street, street_number, flat_number)
+			VALUES (?, ?, ?, ?, ?);
+		`, postcode, city, streetPtr, streetNumber, flatNumPtr)
+		if err != nil {
+			return types.ErrInternalServer
+		}
+		newAddressID, _ := res.LastInsertId()
+		_, err = db.exec(`UPDATE users SET address_id = ? WHERE id = ?`, newAddressID, userID)
+		if err != nil {
+			return types.ErrInternalServer
+		}
+	}
+
+	_, err = db.exec(`UPDATE users SET phone = ? WHERE id = ?`, phone, userID)
+	if err != nil {
+		return types.ErrInternalServer
+	}
+	return nil
+}
+
+// ApplyReferee attempts to add a user to the referees table
+func (db *Database) ApplyReferee(userID int) types.ErrorApi {
+	row, cancel := db.queryRow("SELECT phone, address_id FROM users WHERE id = ?", userID)
+	defer cancel()
+
+	var phone sql.NullString
+	var addressID sql.NullInt64
+	if err := row.Scan(&phone, &addressID); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return types.ErrNotFound
+		}
+		return types.ErrInternalServer
+	}
+
+	if !phone.Valid || !addressID.Valid {
+		return types.ErrInvalidPayload // incomplete profile
+	}
+
+	_, err := db.exec("INSERT IGNORE INTO referees (user_id) VALUES (?)", userID)
+	if err != nil {
+		return types.ErrInternalServer
+	}
+
+	_, err = db.exec("UPDATE users SET role = 'referee' WHERE id = ?", userID)
+	if err != nil {
+		return types.ErrInternalServer
+	}
+
+	return nil
+}

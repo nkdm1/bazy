@@ -33,6 +33,8 @@ func (a *Api) Mount() http.Handler {
 		})
 		r.Route("/user", func(r chi.Router) {
 			r.Use(a.authorize)
+			r.Post("/profile", a.updateUserProfile)
+			r.Post("/applyReferee", a.applyReferee)
 			r.Post("/logout", a.logout)
 			r.Delete("/", a.deleteAccount)
 			r.Get("/changePassword", a.requestNewPassword)

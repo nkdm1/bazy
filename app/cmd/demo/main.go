@@ -22,6 +22,8 @@ const baseURL = "http://localhost:8080"
 var (
 	adminClient   *http.Client
 	refereeClient *http.Client
+	ref2Client *http.Client
+	ref3Client *http.Client
 	viewerClient  *http.Client
 
 	// Global state for extracting IDs
@@ -32,6 +34,10 @@ var (
 	payoutID  int
 	regToken  string
 	bankTxID  string
+	bankTx2   string
+	bankTx3   string
+	payout2ID int
+	payout3ID int
 
 	// Lipgloss styles
 	titleStyle = lipgloss.NewStyle().
@@ -172,7 +178,7 @@ func (m model) View() string {
 		reqText = fmt.Sprintf("[REQUEST] %s %s", step.Method, baseURL+step.Path)
 	}
 	leftContent := callerText + "\n" + reqStyle.Render(reqText)
-	if step.Payload != nil {
+	if len(reqBodyBytes) > 0 {
 		leftContent += "\n\nBody:\n" + string(reqBodyBytes)
 	}
 
@@ -234,6 +240,10 @@ func main() {
 
 	refereeJar, _ := cookiejar.New(nil)
 	refereeClient = &http.Client{Jar: refereeJar}
+	ref2Jar, _ := cookiejar.New(nil)
+	ref2Client = &http.Client{Jar: ref2Jar}
+	ref3Jar, _ := cookiejar.New(nil)
+	ref3Client = &http.Client{Jar: ref3Jar}
 
 	viewerJar, _ := cookiejar.New(nil)
 	viewerClient = &http.Client{Jar: viewerJar}
@@ -412,11 +422,13 @@ func getSteps() []Step {
 		},
 		{
 			Scene:   "SCENE 2: REFEREE ONBOARDING",
-			Desc:    "Admin upgrades users to Referees (Silent bulk)",
-			Caller:  "Admin",
+			Desc:    "Users update their profile and apply to become referees (Silent bulk)",
+			Caller:  "User",
 			Method:  "POST",
-			Path:    "/admin/referee",
-			Payload: func() interface{} { return map[string]interface{}{"email": "john@referee.com", "phone": "123456789", "postcode": "00-001", "city": "Ref City", "street": "Ref St", "street_number": "1", "flat_number": ""} },
+			MultiPath: []string{"/user/profile", "/user/applyReferee"},
+			RawBody: func() string {
+				return "body1:\n{\n  \"city\": \"Ref City\",\n  \"flat_number\": \"\",\n  \"phone\": \"123456789\",\n  \"postcode\": \"00-001\",\n  \"street\": \"Ref St\",\n  \"street_number\": \"1\"\n}\nbody2:\n{}"
+			},
 			Do: func() string {
 				// Register others silently
 				res2 := doReq(viewerClient, "POST", "/register/", map[string]interface{}{"name": "Jane", "surname": "Smith", "email": "jane@referee.com"})
@@ -429,10 +441,21 @@ func getSteps() []Step {
 				json.Unmarshal([]byte(getRawJSON(res3)), &rResp3)
 				doReq(viewerClient, "POST", "/register/confirm", map[string]interface{}{"token": rResp3.Data.Token, "new_password": "password"})
 
-				doReq(adminClient, "POST", "/admin/referee", map[string]interface{}{"email": "jane@referee.com", "phone": "222222222", "postcode": "00-002", "city": "City", "street": "St", "street_number": "2", "flat_number": ""})
-				doReq(adminClient, "POST", "/admin/referee", map[string]interface{}{"email": "mark@referee.com", "phone": "333333333", "postcode": "00-003", "city": "City", "street": "St", "street_number": "3", "flat_number": ""})
+				// Log them in
+				doReq(ref2Client, "POST", "/login", map[string]interface{}{"email": "jane@referee.com", "password": "password"})
+				doReq(ref3Client, "POST", "/login", map[string]interface{}{"email": "mark@referee.com", "password": "password"})
+				doReq(viewerClient, "POST", "/login", map[string]interface{}{"email": "john@referee.com", "password": "password"})
+
+				// Update profiles and apply
+				doReq(ref2Client, "POST", "/user/profile", map[string]interface{}{"phone": "222222222", "postcode": "00-002", "city": "City", "street": "St", "street_number": "2", "flat_number": ""})
+				doReq(ref2Client, "POST", "/user/applyReferee", nil)
+
+				doReq(ref3Client, "POST", "/user/profile", map[string]interface{}{"phone": "333333333", "postcode": "00-003", "city": "City", "street": "St", "street_number": "3", "flat_number": ""})
+				doReq(ref3Client, "POST", "/user/applyReferee", nil)
 				
-				return doReq(adminClient, "POST", "/admin/referee", map[string]interface{}{"email": "john@referee.com", "phone": "123456789", "postcode": "00-001", "city": "Ref City", "street": "Ref St", "street_number": "1", "flat_number": ""})
+				r1 := doReq(viewerClient, "POST", "/user/profile", map[string]interface{}{"phone": "123456789", "postcode": "00-001", "city": "Ref City", "street": "Ref St", "street_number": "1", "flat_number": ""})
+				r2 := doReq(viewerClient, "POST", "/user/applyReferee", nil)
+				return r1 + "\n" + r2
 			},
 		},
 		{
@@ -458,6 +481,8 @@ func getSteps() []Step {
 			Path:    "/login",
 			Payload: func() interface{} { return map[string]interface{}{"email": "john@referee.com", "password": "password"} },
 			Do: func() string {
+				doReq(ref2Client, "POST", "/login", map[string]interface{}{"email": "jane@referee.com", "password": "password"})
+				doReq(ref3Client, "POST", "/login", map[string]interface{}{"email": "mark@referee.com", "password": "password"})
 				return doReq(refereeClient, "POST", "/login", map[string]interface{}{"email": "john@referee.com", "password": "password"})
 			},
 		},
@@ -508,6 +533,8 @@ func getSteps() []Step {
 			Path:    "/referee/assignment/respond",
 			Payload: func() interface{} { return map[string]interface{}{"match_id": matchID, "accept": true} },
 			Do: func() string {
+				doReq(ref2Client, "POST", "/referee/assignment/respond", map[string]interface{}{"match_id": matchID, "accept": true})
+				doReq(ref3Client, "POST", "/referee/assignment/respond", map[string]interface{}{"match_id": matchID, "accept": true})
 				return doReq(refereeClient, "POST", "/referee/assignment/respond", map[string]interface{}{"match_id": matchID, "accept": true})
 			},
 		},
@@ -586,17 +613,15 @@ func getSteps() []Step {
 			Payload: func() interface{} { return map[string]interface{}{"referee_ids": []int{refereeID, ref2ID, ref3ID}} },
 			Do: func() string {
 				res := doReq(adminClient, "POST", "/admin/payouts/sent", map[string]interface{}{"referee_ids": []int{refereeID, ref2ID, ref3ID}})
-				// extract bank tx id from first element
 				var parsed map[string]interface{}
 				json.Unmarshal([]byte(getRawJSON(res)), &parsed)
-				if data, ok := parsed["data"].([]interface{}); ok && len(data) > 0 {
-					item := data[0].(map[string]interface{})
-					if tx, ok := item["bank_transaction_id"].(string); ok {
-						bankTxID = tx
-					}
-					if pID, ok := item["payout_id"].(float64); ok {
-						payoutID = int(pID)
-					}
+				if data, ok := parsed["data"].([]interface{}); ok && len(data) >= 3 {
+					if tx, ok := data[0].(map[string]interface{})["bank_transaction_id"].(string); ok { bankTxID = tx }
+					if tx, ok := data[1].(map[string]interface{})["bank_transaction_id"].(string); ok { bankTx2 = tx }
+					if tx, ok := data[2].(map[string]interface{})["bank_transaction_id"].(string); ok { bankTx3 = tx }
+					if pID, ok := data[0].(map[string]interface{})["payout_id"].(float64); ok { payoutID = int(pID) }
+					if pID, ok := data[1].(map[string]interface{})["payout_id"].(float64); ok { payout2ID = int(pID) }
+					if pID, ok := data[2].(map[string]interface{})["payout_id"].(float64); ok { payout3ID = int(pID) }
 				}
 				return res
 			},
@@ -615,14 +640,24 @@ func getSteps() []Step {
 		},
 		{
 			Scene:   "SCENE 5: PAYOUT PROCESSING",
-			Desc:    "Admin confirms bank transfer payout",
+			Desc:    "Admin confirms bank transfers (2 paid, 1 failed)",
 			Caller:  "Admin",
 			Method:  "POST",
 			Path:    "/admin/payouts/confirm",
-			Payload: func() interface{} { return map[string]interface{}{"confirmations": []map[string]interface{}{{"payout_id": payoutID, "bank_transaction_id": bankTxID}}} },
+			Payload: func() interface{} { 
+				return map[string]interface{}{"confirmations": []map[string]interface{}{
+					{"payout_id": payoutID, "bank_transaction_id": bankTxID, "status": "paid"},
+					{"payout_id": payout2ID, "bank_transaction_id": bankTx2, "status": "paid"},
+					{"payout_id": payout3ID, "bank_transaction_id": bankTx3, "status": "failed"},
+				}} 
+			},
 			Do: func() string {
 				return doReq(adminClient, "POST", "/admin/payouts/confirm", map[string]interface{}{
-					"confirmations": []map[string]interface{}{{"payout_id": payoutID, "bank_transaction_id": bankTxID}},
+					"confirmations": []map[string]interface{}{
+						{"payout_id": payoutID, "bank_transaction_id": bankTxID, "status": "paid"},
+						{"payout_id": payout2ID, "bank_transaction_id": bankTx2, "status": "paid"},
+						{"payout_id": payout3ID, "bank_transaction_id": bankTx3, "status": "failed"},
+					},
 				})
 			},
 		},

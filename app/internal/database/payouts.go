@@ -258,6 +258,7 @@ func (db *Database) MarkPayoutsSent(refereeIDs []int) ([]SentPayoutResult, types
 type PayoutConfirmation struct {
 	PayoutID          int    `json:"payout_id"`
 	BankTransactionID string `json:"bank_transaction_id"`
+	Status            string `json:"status"` // "paid" or "failed"
 }
 
 func (db *Database) ProcessPayouts(confirmations []PayoutConfirmation) types.ErrorApi {
@@ -272,7 +273,7 @@ func (db *Database) ProcessPayouts(confirmations []PayoutConfirmation) types.Err
 	}
 	defer tx.Rollback()
 
-	stmt, err := tx.Prepare(`
+	stmtPaid, err := tx.Prepare(`
 		UPDATE payouts 
 		SET status = 'paid', bank_transaction_id = ?, paid_at = NOW() 
 		WHERE id = ? AND status = 'sent'
@@ -281,10 +282,27 @@ func (db *Database) ProcessPayouts(confirmations []PayoutConfirmation) types.Err
 		log.Printf("[ERROR]: DB error preparing statement: %v", err)
 		return types.ErrInternalServer
 	}
-	defer stmt.Close()
+	defer stmtPaid.Close()
+
+	stmtFailed, err := tx.Prepare(`
+		UPDATE payouts 
+		SET status = 'failed', bank_transaction_id = ?, paid_at = NOW() 
+		WHERE id = ? AND status = 'sent'
+	`)
+	if err != nil {
+		log.Printf("[ERROR]: DB error preparing statement: %v", err)
+		return types.ErrInternalServer
+	}
+	defer stmtFailed.Close()
 
 	for _, conf := range confirmations {
-		_, err := stmt.Exec(conf.BankTransactionID, conf.PayoutID)
+		var err error
+		if conf.Status == "failed" {
+			_, err = stmtFailed.Exec(conf.BankTransactionID, conf.PayoutID)
+		} else {
+			_, err = stmtPaid.Exec(conf.BankTransactionID, conf.PayoutID)
+		}
+		
 		if err != nil {
 			log.Printf("[ERROR]: DB error processing payout %d: %v", conf.PayoutID, err)
 			return types.ErrInternalServer

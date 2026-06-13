@@ -341,10 +341,6 @@ func (a *Api) addAvailability(w http.ResponseWriter, r *http.Request) {
 		fail(w, err)
 		return
 	}
-	if !a.Database.HasValidLicense(refereeId) {
-		fail(w, types.ErrForbidden)
-		return
-	}
 
 	payload := new(struct {
 		Date *string `json:"date"`
@@ -970,10 +966,6 @@ func (a *Api) respondToAssignment(w http.ResponseWriter, r *http.Request) {
 		fail(w, dbErr)
 		return
 	}
-	if !a.Database.HasValidLicense(refereeID) {
-		fail(w, types.ErrForbidden)
-		return
-	}
 
 	var payload PayloadRespondToAssignment
 	if err := loadPayload(&payload, r.Body); err != nil {
@@ -1094,10 +1086,6 @@ func (a *Api) submitMatchScore(w http.ResponseWriter, r *http.Request) {
 	refereeID, dbErr := a.Database.GetRefereeIDByUserID(userId)
 	if dbErr != nil {
 		fail(w, dbErr)
-		return
-	}
-	if !a.Database.HasValidLicense(refereeID) {
-		fail(w, types.ErrForbidden)
 		return
 	}
 

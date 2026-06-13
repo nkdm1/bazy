@@ -14,6 +14,12 @@ func TestDemoSequence(t *testing.T) {
 
 	refereeJar, _ := cookiejar.New(nil)
 	refereeClient = &http.Client{Jar: refereeJar}
+	
+	ref2Jar, _ := cookiejar.New(nil)
+	ref2Client = &http.Client{Jar: ref2Jar}
+	
+	ref3Jar, _ := cookiejar.New(nil)
+	ref3Client = &http.Client{Jar: ref3Jar}
 
 	viewerJar, _ := cookiejar.New(nil)
 	viewerClient = &http.Client{Jar: viewerJar}
