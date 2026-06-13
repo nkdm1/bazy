@@ -242,3 +242,42 @@ func TestGetMatchDetails(t *testing.T) {
 		t.Errorf("expected away team points 70, got %v", matchDetails.AwayTeamPoints)
 	}
 }
+
+func TestCancelMatch(t *testing.T) {
+	db := testDB(t)
+
+	matchID, _, _, cleanupMatch := createTestMatch(t, db, "scheduled", 2)
+	defer cleanupMatch()
+
+	refereeID, cleanupReferee := createTestReferee(t, db)
+	defer cleanupReferee()
+
+	assignID, cleanupAssignment := createTestMatchAssignment(t, db, refereeID, matchID)
+	defer cleanupAssignment()
+
+	err := db.CancelMatch(matchID)
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	var status string
+	rowStatus, cancelStatus := db.queryRow(`SELECT status FROM matches WHERE id = ?`, matchID)
+	rowStatus.Scan(&status)
+	cancelStatus()
+	if status != "cancelled" {
+		t.Errorf("expected match status 'cancelled', got %s", status)
+	}
+
+	var assignStatus string
+	rowAssign, cancelAssign := db.queryRow(`SELECT assignment_status FROM match_assignments WHERE id = ?`, assignID)
+	rowAssign.Scan(&assignStatus)
+	cancelAssign()
+	if assignStatus != "cancelled" {
+		t.Errorf("expected assignment status 'cancelled', got %s", assignStatus)
+	}
+
+	errNotFound := db.CancelMatch(999999)
+	if !errors.Is(errNotFound, types.ErrNotFound) {
+		t.Errorf("expected ErrNotFound, got: %v", errNotFound)
+	}
+}

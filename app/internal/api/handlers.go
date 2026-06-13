@@ -852,3 +852,21 @@ func (a *Api) getMatchDetails(w http.ResponseWriter, r *http.Request) {
 
 	ok(w, http.StatusOK, "match details", details)
 }
+
+type PayloadCancelMatch struct {
+	MatchID *int `json:"match_id"`
+}
+
+func (a *Api) cancelMatch(w http.ResponseWriter, r *http.Request) {
+	var payload PayloadCancelMatch
+	if err := loadPayload(&payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	if err := a.Database.CancelMatch(*payload.MatchID); err != nil {
+		fail(w, err)
+		return
+	}
+	ok(w, http.StatusOK, "match cancelled", nil)
+}

@@ -422,3 +422,40 @@ func (db *Database) GetMatchDetails(matchID int) (MatchDetails, types.ErrorApi) 
 
 	return m, nil
 }
+
+func (db *Database) CancelMatch(matchID int) types.ErrorApi {
+	tx, err := db.instance.Begin()
+	if err != nil {
+		log.Printf("[ERROR]: Failed to start tx for CancelMatch: %v", err)
+		return types.ErrInternalServer
+	}
+	defer tx.Rollback()
+
+	res, err := tx.Exec(`UPDATE matches SET status = 'cancelled' WHERE id = ? AND status != 'cancelled'`, matchID)
+	if err != nil {
+		log.Printf("[ERROR]: DB error cancelling match: %v", err)
+		return types.ErrInternalServer
+	}
+
+	affected, err := res.RowsAffected()
+	if err != nil {
+		log.Printf("[ERROR]: DB error getting rows affected: %v", err)
+		return types.ErrInternalServer
+	}
+	if affected == 0 {
+		return types.ErrNotFound
+	}
+
+	_, err = tx.Exec(`UPDATE match_assignments SET assignment_status = 'cancelled' WHERE match_id = ? AND assignment_status != 'cancelled'`, matchID)
+	if err != nil {
+		log.Printf("[ERROR]: DB error cancelling match assignments: %v", err)
+		return types.ErrInternalServer
+	}
+
+	if err := tx.Commit(); err != nil {
+		log.Printf("[ERROR]: Failed to commit tx for CancelMatch: %v", err)
+		return types.ErrInternalServer
+	}
+
+	return nil
+}
