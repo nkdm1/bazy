@@ -74,6 +74,7 @@ func (a *Api) Mount() http.Handler {
 			r.Post("/payouts/pending", a.getPendingPayouts)
 			r.Post("/payouts/sent", a.markPayoutsSent)
 			r.Post("/payouts/confirm", a.processPayouts)
+			r.Get("/payouts/report", a.getMonthlyPayoutReport)
 			r.Get("/referees/available", a.searchAvailableReferees)
 		})
 		r.Route("/register", func(r chi.Router) {

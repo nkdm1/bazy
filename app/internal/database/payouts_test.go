@@ -212,3 +212,35 @@ func TestGetPayoutHistory(t *testing.T) {
 		t.Errorf("expected assignment %d, got %d", assignID, history[0].AssignmentID)
 	}
 }
+
+func TestGetMonthlyPayoutReport(t *testing.T) {
+	db := testDB(t)
+
+	refereeID, cleanupRef := createTestReferee(t, db)
+	defer cleanupRef()
+
+	matchID, _, _, cleanupMatch := createTestMatch(t, db, "completed", -10)
+	defer cleanupMatch()
+	assignID, cleanupAssign := createTestMatchAssignment(t, db, refereeID, matchID)
+	defer cleanupAssign()
+
+	paidDate := time.Date(2026, time.June, 15, 12, 0, 0, 0, time.UTC)
+	_, amount, cleanupPayout := createTestPayout(t, db, assignID, paidDate)
+	defer cleanupPayout()
+
+	report, err := db.GetMonthlyPayoutReport(2026, time.June)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	found := false
+	for _, item := range report {
+		if item.RefereeID == refereeID && item.TotalPaid == amount {
+			found = true
+			break
+		}
+	}
+	if !found {
+		t.Errorf("expected report to contain referee %d with amount %f", refereeID, amount)
+	}
+}

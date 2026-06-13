@@ -281,3 +281,42 @@ func (db *Database) GetPayoutHistory(refereeID int) ([]PayoutHistoryItem, types.
 
 	return list, nil
 }
+
+type PayoutReportItem struct {
+	RefereeID int     `json:"referee_id"`
+	TotalPaid float64 `json:"total_paid"`
+}
+
+func (db *Database) GetMonthlyPayoutReport(year int, month time.Month) ([]PayoutReportItem, types.ErrorApi) {
+	firstDay := time.Date(year, month, 1, 0, 0, 0, 0, time.UTC)
+	lastDay := firstDay.AddDate(0, 1, 0).Add(-time.Second)
+
+	rows, cancel, err := db.query(`
+		SELECT ma.referee_id, SUM(p.amount)
+		FROM payouts p
+		JOIN match_assignments ma ON p.assignment_id = ma.id
+		WHERE p.status = 'paid'
+			AND p.paid_at BETWEEN ? AND ?
+		GROUP BY ma.referee_id
+		ORDER BY ma.referee_id ASC
+	`, firstDay, lastDay)
+	defer cancel()
+
+	if err != nil {
+		log.Printf("[ERROR]: DB error fetching monthly payout report: %v", err)
+		return nil, types.ErrInternalServer
+	}
+
+	list := make([]PayoutReportItem, 0)
+	for rows.Next() {
+		var item PayoutReportItem
+		if err := rows.Scan(&item.RefereeID, &item.TotalPaid); err != nil {
+			log.Printf("[ERROR]: DB error scanning report item: %v", err)
+			return nil, types.ErrInternalServer
+		}
+		list = append(list, item)
+	}
+	rows.Close()
+
+	return list, nil
+}

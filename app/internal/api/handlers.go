@@ -1193,3 +1193,28 @@ func (a *Api) getPayoutHistory(w http.ResponseWriter, r *http.Request) {
 
 	ok(w, http.StatusOK, "payout history", history)
 }
+
+func (a *Api) getMonthlyPayoutReport(w http.ResponseWriter, r *http.Request) {
+	yearStr := r.URL.Query().Get("year")
+	monthStr := r.URL.Query().Get("month")
+
+	year, err := strconv.Atoi(yearStr)
+	if err != nil || year < 2000 {
+		fail(w, types.ErrInvalidPayload)
+		return
+	}
+
+	monthInt, err := strconv.Atoi(monthStr)
+	if err != nil || monthInt < 1 || monthInt > 12 {
+		fail(w, types.ErrInvalidPayload)
+		return
+	}
+
+	report, dbErr := a.Database.GetMonthlyPayoutReport(year, time.Month(monthInt))
+	if dbErr != nil {
+		fail(w, dbErr)
+		return
+	}
+
+	ok(w, http.StatusOK, "monthly payout report", report)
+}

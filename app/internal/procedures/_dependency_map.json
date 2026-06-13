@@ -324,7 +324,7 @@
     },
 
     "get_monthly_payout_report": {
-      "status": "pending",
+      "status": "done",
       "role": "admin",
       "depends_on": ["process_payouts"],
       "priority_layer": 10,
