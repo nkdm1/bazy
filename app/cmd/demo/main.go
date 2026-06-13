@@ -43,14 +43,12 @@ var (
 	titleStyle = lipgloss.NewStyle().
 			Bold(true).
 			Foreground(lipgloss.Color("#FAFAFA")).
-			Background(lipgloss.Color("#7D56F4")).
 			Padding(1, 4).
 			MarginBottom(1).
 			Align(lipgloss.Center)
 
 	panelStyle = lipgloss.NewStyle().
 			Border(lipgloss.RoundedBorder()).
-			BorderForeground(lipgloss.Color("#874BFD")).
 			Padding(1, 2)
 
 	buttonStyle = lipgloss.NewStyle().
@@ -147,14 +145,21 @@ func (m model) View() string {
 		return "Initializing..."
 	}
 
-	header := titleStyle.Width(m.width).Render("BAZY API DEMO")
-
 	if m.stepIdx >= len(m.steps) {
+		header := titleStyle.Background(lipgloss.Color("#874BFD")).Width(m.width).Render("BAZY API DEMO")
 		endText := lipgloss.NewStyle().Align(lipgloss.Center).Width(m.width).MarginTop(2).Render("Demo Completed Successfully!\nPress [Enter] or [q] to exit.")
 		return lipgloss.JoinVertical(lipgloss.Left, header, endText)
 	}
 
 	step := m.steps[m.stepIdx]
+	sceneColor := lipgloss.Color("#874BFD")
+	if strings.HasPrefix(step.Scene, "SCENE 1") { sceneColor = lipgloss.Color("#7aa2f7") }
+	if strings.HasPrefix(step.Scene, "SCENE 2") { sceneColor = lipgloss.Color("#bb9af7") }
+	if strings.HasPrefix(step.Scene, "SCENE 3") { sceneColor = lipgloss.Color("#7dcfff") }
+	if strings.HasPrefix(step.Scene, "SCENE 4") { sceneColor = lipgloss.Color("#9ece6a") }
+	if strings.HasPrefix(step.Scene, "SCENE 5") { sceneColor = lipgloss.Color("#e0af68") }
+
+	header := titleStyle.Background(sceneColor).Width(m.width).Render("BAZY API DEMO")
 	sceneTitle := lipgloss.NewStyle().Align(lipgloss.Center).Width(m.width).Bold(true).Foreground(lipgloss.Color("#E88388")).Render(fmt.Sprintf("--- %s: %s ---", step.Scene, step.Desc))
 	stepTitle := lipgloss.NewStyle().Bold(true).Render(fmt.Sprintf("Step %d", m.stepIdx+1))
 
@@ -193,8 +198,8 @@ func (m model) View() string {
 		panelWidth = 10
 	}
 
-	leftBox := panelStyle.Width(panelWidth).Height(m.height - 10).Render(leftContent)
-	rightBox := panelStyle.Width(panelWidth).Height(m.height - 10).Render(rightContent)
+	leftBox := panelStyle.BorderForeground(sceneColor).Width(panelWidth).Height(m.height - 10).Render(leftContent)
+	rightBox := panelStyle.BorderForeground(sceneColor).Width(panelWidth).Height(m.height - 10).Render(rightContent)
 
 	panels := lipgloss.JoinHorizontal(lipgloss.Top, leftBox, "  ", rightBox)
 
