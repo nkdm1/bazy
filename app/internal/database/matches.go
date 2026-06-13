@@ -14,7 +14,7 @@ type Match struct {
 	ID             int
 	MatchStart     time.Time
 	MatchEnd       time.Time
-	LevelOfMatch   int
+	LevelOfMatch   string
 	VenueID        int
 	HomeTeamID     int
 	AwayTeamID     int

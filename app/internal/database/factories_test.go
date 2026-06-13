@@ -76,17 +76,7 @@ func createTestVenue(t *testing.T, db *Database) (int, func()) {
 	}
 }
 
-func createTestMatchLevel(t *testing.T, db *Database) (int, func()) {
-	t.Helper()
-	res, err := db.exec(`INSERT INTO matches_level (match_level) VALUES ('okregowa')`)
-	if err != nil {
-		t.Fatalf("failed to create test match level: %v", err)
-	}
-	id, _ := res.LastInsertId()
-	return int(id), func() {
-		db.exec(`DELETE FROM matches_level WHERE id = ?`, id)
-	}
-}
+
 
 func createTestRoleInMatch(t *testing.T, db *Database) (int, func()) {
 	t.Helper()
@@ -105,12 +95,11 @@ func createTestMatch(t *testing.T, db *Database, status string, daysFromNow int)
 	homeTeamID, cleanupHome := createTestTeam(t, db)
 	awayTeamID, cleanupAway := createTestTeam(t, db)
 	venueID, cleanupVenue := createTestVenue(t, db)
-	levelID, cleanupLevel := createTestMatchLevel(t, db)
 
 	query := fmt.Sprintf(`INSERT INTO matches (match_start, match_end, level_of_match, venue_id, home_team_id, away_team_id, status)
-		VALUES (DATE_ADD(NOW(), INTERVAL %d DAY), DATE_ADD(NOW(), INTERVAL %d DAY), ?, ?, ?, ?, ?)`, daysFromNow, daysFromNow)
+		VALUES (DATE_ADD(NOW(), INTERVAL %d DAY), DATE_ADD(NOW(), INTERVAL %d DAY), 'okregowa', ?, ?, ?, ?)`, daysFromNow, daysFromNow)
 	
-	res, err := db.exec(query, levelID, venueID, homeTeamID, awayTeamID, status)
+	res, err := db.exec(query, venueID, homeTeamID, awayTeamID, status)
 	if err != nil {
 		t.Fatalf("failed to create test match: %v", err)
 	}
@@ -118,7 +107,6 @@ func createTestMatch(t *testing.T, db *Database, status string, daysFromNow int)
 
 	return int(id), homeTeamID, awayTeamID, func() {
 		db.exec(`DELETE FROM matches WHERE id = ?`, id)
-		cleanupLevel()
 		cleanupVenue()
 		cleanupAway()
 		cleanupHome()
@@ -127,10 +115,9 @@ func createTestMatch(t *testing.T, db *Database, status string, daysFromNow int)
 
 func createTestWages(t *testing.T, db *Database) (int, func()) {
 	t.Helper()
-	levelID, cleanupLevel := createTestMatchLevel(t, db)
 	roleID, cleanupRole := createTestRoleInMatch(t, db)
 
-	res, err := db.exec(`INSERT INTO wages (match_level, role_in_match, fee, valid_from) VALUES (?, ?, 150.00, '2020-01-01')`, levelID, roleID)
+	res, err := db.exec(`INSERT INTO wages (match_level, role_in_match, fee, valid_from) VALUES ('okregowa', ?, 150.00, '2020-01-01')`, roleID)
 	if err != nil {
 		t.Fatalf("failed to create test wages: %v", err)
 	}
@@ -139,7 +126,6 @@ func createTestWages(t *testing.T, db *Database) (int, func()) {
 	return int(id), func() {
 		db.exec(`DELETE FROM wages WHERE id = ?`, id)
 		cleanupRole()
-		cleanupLevel()
 	}
 }
 
