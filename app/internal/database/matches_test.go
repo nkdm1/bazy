@@ -131,3 +131,41 @@ func TestCreateMatch(t *testing.T) {
 	})
 }
 
+func TestGetUpcomingMatchesWithDetails(t *testing.T) {
+	db := testDB(t)
+
+	matchID, _, _, cleanupUpcoming := createTestMatch(t, db, "scheduled", 2)
+	defer cleanupUpcoming()
+
+	refereeID, cleanupReferee := createTestReferee(t, db)
+	defer cleanupReferee()
+
+	_, cleanupAssignment := createTestMatchAssignment(t, db, refereeID, matchID)
+	defer cleanupAssignment()
+
+	matches, apiErr := db.GetUpcomingMatchesWithDetails()
+	if apiErr != nil {
+		t.Fatalf("expected no error, got: %v", apiErr)
+	}
+
+	var found *UpcomingMatch
+	for i := range matches {
+		if matches[i].ID == matchID {
+			found = &matches[i]
+			break
+		}
+	}
+
+	if found == nil {
+		t.Fatalf("expected to find upcoming match in results")
+	}
+
+	if len(found.Assignments) != 1 {
+		t.Fatalf("expected 1 assignment, got %d", len(found.Assignments))
+	}
+	
+	if found.Assignments[0].Role != "umpire" {
+		t.Errorf("expected role umpire, got %s", found.Assignments[0].Role)
+	}
+}
+

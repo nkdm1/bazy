@@ -140,7 +140,7 @@
     },
 
     "get_upcoming_matches": {
-      "status": "pending",
+      "status": "done",
       "role": "public",
       "depends_on": ["create_match"],
       "priority_layer": 4,

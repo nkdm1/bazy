@@ -815,3 +815,12 @@ func loadPayload(dst any, body io.ReadCloser) types.ErrorApi {
 
 	return nil
 }
+
+func (a *Api) getUpcomingMatches(w http.ResponseWriter, r *http.Request) {
+	matches, err := a.Database.GetUpcomingMatchesWithDetails()
+	if err != nil {
+		fail(w, err)
+		return
+	}
+	ok(w, http.StatusOK, "upcoming matches", matches)
+}

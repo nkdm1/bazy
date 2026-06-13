@@ -164,3 +164,109 @@ func (db *Database) CreateMatch(homeTeamID, awayTeamID, venueID int, levelOfMatc
 	return nil
 }
 
+type AssignmentDetail struct {
+	RefereeName    string `json:"referee_name"`
+	RefereeSurname string `json:"referee_surname"`
+	Role           string `json:"role"`
+}
+
+type UpcomingMatch struct {
+	ID             int                `json:"id"`
+	MatchStart     time.Time          `json:"match_start"`
+	MatchEnd       time.Time          `json:"match_end"`
+	LevelOfMatch   string             `json:"level_of_match"`
+	VenueGymName   string             `json:"venue_gym_name"`
+	HomeTeamName   string             `json:"home_team_name"`
+	AwayTeamName   string             `json:"away_team_name"`
+	Assignments    []AssignmentDetail `json:"assignments"`
+}
+
+// GetUpcomingMatchesWithDetails queries the 'matches' table for all upcoming matches
+// scheduled from now on, joining teams, venues, and assignments.
+func (db *Database) GetUpcomingMatchesWithDetails() ([]UpcomingMatch, types.ErrorApi) {
+	query := `
+		SELECT 
+			m.id, 
+			m.match_start, 
+			m.match_end, 
+			m.level_of_match,
+			v.gym_name,
+			ht.name as home_team,
+			at.name as away_team
+		FROM matches m
+		JOIN venues v ON m.venue_id = v.id
+		JOIN teams ht ON m.home_team_id = ht.id
+		JOIN teams at ON m.away_team_id = at.id
+		WHERE m.match_start >= NOW() AND m.status = 'scheduled'
+		ORDER BY m.match_start ASC
+	`
+	rows, cancel, err := db.query(query)
+	defer cancel()
+	if err != nil {
+		log.Printf("[ERROR]: DB error fetching upcoming matches: %v", err)
+		return nil, types.ErrInternalServer
+	}
+	defer rows.Close()
+
+	var matches []UpcomingMatch
+	for rows.Next() {
+		var m UpcomingMatch
+		if err := rows.Scan(&m.ID, &m.MatchStart, &m.MatchEnd, &m.LevelOfMatch, &m.VenueGymName, &m.HomeTeamName, &m.AwayTeamName); err != nil {
+			log.Printf("[ERROR]: DB error scanning upcoming match: %v", err)
+			return nil, types.ErrInternalServer
+		}
+		m.Assignments = []AssignmentDetail{}
+		matches = append(matches, m)
+	}
+	if err := rows.Err(); err != nil {
+		log.Printf("[ERROR]: Row iteration error: %v", err)
+		return nil, types.ErrInternalServer
+	}
+
+	if len(matches) == 0 {
+		return []UpcomingMatch{}, nil
+	}
+
+	assignQuery := `
+		SELECT 
+			ma.match_id,
+			u.name,
+			u.surname,
+			r.match_role
+		FROM match_assignments ma
+		JOIN role_in_match r ON ma.role = r.id
+		JOIN referees ref ON ma.referee_id = ref.id
+		JOIN users u ON ref.user_id = u.id
+		WHERE ma.assignment_status = 'accepted' AND ma.match_id IN (
+			SELECT id FROM matches WHERE match_start >= NOW() AND status = 'scheduled'
+		)
+	`
+	aRows, aCancel, aErr := db.query(assignQuery)
+	defer aCancel()
+	if aErr != nil {
+		log.Printf("[ERROR]: DB error fetching assignments: %v", aErr)
+		return nil, types.ErrInternalServer
+	}
+	defer aRows.Close()
+
+	assignmentsMap := make(map[int][]AssignmentDetail)
+	for aRows.Next() {
+		var matchID int
+		var ad AssignmentDetail
+		if err := aRows.Scan(&matchID, &ad.RefereeName, &ad.RefereeSurname, &ad.Role); err != nil {
+			log.Printf("[ERROR]: DB error scanning assignment: %v", err)
+			return nil, types.ErrInternalServer
+		}
+		assignmentsMap[matchID] = append(assignmentsMap[matchID], ad)
+	}
+
+	for i := range matches {
+		if arr, ok := assignmentsMap[matches[i].ID]; ok {
+			matches[i].Assignments = arr
+		}
+	}
+
+	return matches, nil
+}
+
+
