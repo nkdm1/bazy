@@ -211,12 +211,21 @@ func (m model) View() string {
 	buttons := lipgloss.JoinHorizontal(lipgloss.Center, exitBtn, "   ", nextBtn)
 	buttonsCentered := lipgloss.NewStyle().Width(m.width).Align(lipgloss.Center).Render(buttons)
 
-	mainView := lipgloss.JoinVertical(lipgloss.Left,
-		header,
-		sceneTitle,
-		stepTitle,
-		panels,
-		buttonsCentered,
+	bgColor := lipgloss.Color("#000000")
+	if strings.HasPrefix(step.Scene, "SCENE 1") { bgColor = lipgloss.Color("#1a1b26") }
+	if strings.HasPrefix(step.Scene, "SCENE 2") { bgColor = lipgloss.Color("#1e1e2e") }
+	if strings.HasPrefix(step.Scene, "SCENE 3") { bgColor = lipgloss.Color("#232136") }
+	if strings.HasPrefix(step.Scene, "SCENE 4") { bgColor = lipgloss.Color("#2d2a2e") }
+	if strings.HasPrefix(step.Scene, "SCENE 5") { bgColor = lipgloss.Color("#282c34") }
+
+	mainView := lipgloss.NewStyle().Background(bgColor).Width(m.width).Height(m.height).Render(
+		lipgloss.JoinVertical(lipgloss.Left,
+			header,
+			sceneTitle,
+			stepTitle,
+			panels,
+			buttonsCentered,
+		),
 	)
 
 	return mainView
