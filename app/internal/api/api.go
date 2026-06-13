@@ -48,6 +48,8 @@ func (a *Api) Mount() http.Handler {
 			r.Post("/license", a.submitLicenseRequest)
 			r.Post("/setPhone", a.requestNewPhone)
 			r.Post("/setPhone/confirm", a.updatePhone)
+			r.Post("/assignment/respond", a.respondToAssignment)
+			r.Get("/assignments/pending", a.getPendingAssignments)
 		})
 		r.Route("/admin", func(r chi.Router) {
 			r.Use(a.authorize)
@@ -63,12 +65,6 @@ func (a *Api) Mount() http.Handler {
 			r.Post("/match/assignment/revoke", a.revokeAssignment)
 			r.Get("/referees", a.getRefereeDirectory)
 			r.Get("/referees/available", a.searchAvailableReferees)
-		})
-		r.Route("/referee", func(r chi.Router) {
-			r.Use(a.authorize)
-			r.Use(a.refereeOnly)
-			r.Post("/assignment/respond", a.respondToAssignment)
-			r.Get("/assignments/pending", a.getPendingAssignments)
 		})
 		r.Route("/register", func(r chi.Router) {
 			r.Post("/", a.register)
