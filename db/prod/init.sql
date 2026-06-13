@@ -84,7 +84,7 @@ CREATE TABLE `matches` (
   `id` integer PRIMARY KEY AUTO_INCREMENT,
   `match_start` timestamp NOT NULL,
   `match_end` timestamp NOT NULL,
-  `level_of_match` integer NOT NULL,
+  `level_of_match` ENUM ('fiba', 'plk', 'centralna', 'okregowa', 'stazysta') NOT NULL,
   `venue_id` integer NOT NULL,
   `home_team_id` integer NOT NULL,
   `away_team_id` integer NOT NULL,
@@ -103,15 +103,10 @@ CREATE TABLE `match_assignments` (
 
 CREATE TABLE `wages` (
   `id` integer PRIMARY KEY AUTO_INCREMENT,
-  `match_level` integer NOT NULL,
+  `match_level` ENUM ('fiba', 'plk', 'centralna', 'okregowa', 'stazysta') NOT NULL,
   `role_in_match` integer NOT NULL,
   `fee` decimal(10,2) NOT NULL,
   `valid_from` date NOT NULL
-);
-
-CREATE TABLE `matches_level` (
-  `id` integer PRIMARY KEY AUTO_INCREMENT,
-  `match_level` ENUM ('fiba', 'plk', 'centralna', 'okregowa', 'stazysta') NOT NULL
 );
 
 CREATE TABLE `role_in_match` (
@@ -184,10 +179,6 @@ ALTER TABLE `set_mail` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 ALTER TABLE `set_password` ADD FOREIGN KEY (`user_id`) REFERENCES `users` (`id`);
 
 ALTER TABLE `reviews` ADD FOREIGN KEY (`created_by`) REFERENCES `users` (`id`);
-
-ALTER TABLE `matches` ADD FOREIGN KEY (`level_of_match`) REFERENCES `matches_level` (`id`);
-
-ALTER TABLE `wages` ADD FOREIGN KEY (`match_level`) REFERENCES `matches_level` (`id`);
 
 ALTER TABLE `match_assignments` ADD FOREIGN KEY (`role`) REFERENCES `role_in_match` (`id`);
 

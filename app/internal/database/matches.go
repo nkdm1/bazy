@@ -672,3 +672,72 @@ func (db *Database) GetMatchAssignmentHistory(matchID int) ([]MatchAssignmentHis
 	}
 	return list, nil
 }
+
+func (db *Database) SubmitMatchScore(matchID int, refereeID int, homePoints int, awayPoints int) types.ErrorApi {
+	roleRow, cancelRole := db.queryRow(`SELECT id FROM role_in_match WHERE match_role = 'crew_chief'`)
+	var crewChiefRoleID int
+	if err := roleRow.Scan(&crewChiefRoleID); err != nil {
+		cancelRole()
+		log.Printf("[ERROR]: DB error getting crew_chief role id: %v", err)
+		return types.ErrInternalServer
+	}
+	cancelRole()
+
+	checkRow, cancelCheck := db.queryRow(`
+		SELECT id 
+		FROM match_assignments 
+		WHERE match_id = ? AND referee_id = ? AND role = ? AND assignment_status = 'accepted'
+	`, matchID, refereeID, crewChiefRoleID)
+	var dummy int
+	if err := checkRow.Scan(&dummy); err != nil {
+		cancelCheck()
+		if errors.Is(err, sql.ErrNoRows) {
+			return types.ErrForbidden
+		}
+		log.Printf("[ERROR]: DB error checking crew chief status: %v", err)
+		return types.ErrInternalServer
+	}
+	cancelCheck()
+
+	res, err := db.exec(`
+		UPDATE matches
+		SET status = 'completed', home_team_points = ?, away_team_points = ?
+		WHERE id = ? AND status != 'completed'
+	`, homePoints, awayPoints, matchID)
+	if err != nil {
+		log.Printf("[ERROR]: DB error updating match: %v", err)
+		return types.ErrInternalServer
+	}
+	affected, _ := res.RowsAffected()
+	if affected == 0 {
+		return types.ErrNotFound
+	}
+
+	rows, cancelRows, err := db.query(`
+		SELECT id FROM match_assignments WHERE match_id = ? AND assignment_status = 'accepted'
+	`, matchID)
+	defer cancelRows()
+	if err != nil {
+		log.Printf("[ERROR]: DB error querying accepted assignments: %v", err)
+		return types.ErrInternalServer
+	}
+
+	var assignmentIDs []int
+	for rows.Next() {
+		var aid int
+		if err := rows.Scan(&aid); err != nil {
+			log.Printf("[ERROR]: DB error scanning assignment: %v", err)
+			return types.ErrInternalServer
+		}
+		assignmentIDs = append(assignmentIDs, aid)
+	}
+	rows.Close()
+
+	for _, aid := range assignmentIDs {
+		if err := db.CreatePendingPayout(aid); err != nil {
+			log.Printf("[ERROR]: DB error creating pending payout for assignment %d: %v", aid, err)
+		}
+	}
+
+	return nil
+}

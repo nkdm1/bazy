@@ -67,3 +67,59 @@ func (db *Database) GetTotalEarningsByRefereeID(refereeID int) (float64, types.E
 
 	return result, nil
 }
+
+// CreatePendingPayout resolves applicable wage and inserts 'pending' payout
+func (db *Database) CreatePendingPayout(assignmentID int) types.ErrorApi {
+	row, cancel := db.queryRow(`
+		SELECT m.level_of_match, ma.role, m.match_start
+		FROM match_assignments ma
+		JOIN matches m ON ma.match_id = m.id
+		WHERE ma.id = ?
+	`, assignmentID)
+
+	var matchLevel string
+	var roleID int
+	var matchStart time.Time
+
+	if err := row.Scan(&matchLevel, &roleID, &matchStart); err != nil {
+		cancel()
+		if errors.Is(err, sql.ErrNoRows) {
+			return types.ErrNotFound
+		}
+		log.Printf("[ERROR]: DB error getting assignment info: %v", err)
+		return types.ErrInternalServer
+	}
+	cancel()
+
+	wageRow, cancelWage := db.queryRow(`
+		SELECT id, fee
+		FROM wages
+		WHERE match_level = ? AND role_in_match = ? AND valid_from <= ?
+		ORDER BY valid_from DESC
+		LIMIT 1
+	`, matchLevel, roleID, matchStart)
+
+	var wagesID int
+	var fee float64
+	if err := wageRow.Scan(&wagesID, &fee); err != nil {
+		cancelWage()
+		if errors.Is(err, sql.ErrNoRows) {
+			log.Printf("[ERROR]: No wage found for level %s role %d", matchLevel, roleID)
+			return types.ErrNotFound
+		}
+		log.Printf("[ERROR]: DB error getting wage: %v", err)
+		return types.ErrInternalServer
+	}
+	cancelWage()
+
+	_, err := db.exec(`
+		INSERT INTO payouts (assignment_id, wages_id, amount, status)
+		VALUES (?, ?, ?, 'pending')
+	`, assignmentID, wagesID, fee)
+
+	if err != nil {
+		log.Printf("[ERROR]: DB error inserting payout: %v", err)
+		return types.ErrInternalServer
+	}
+	return nil
+}

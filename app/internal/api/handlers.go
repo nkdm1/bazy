@@ -1072,3 +1072,31 @@ func (a *Api) getMatchAssignmentHistory(w http.ResponseWriter, r *http.Request) 
 
 	ok(w, http.StatusOK, "match assignment history", history)
 }
+
+type PayloadSubmitScore struct {
+	MatchID        *int `json:"match_id"`
+	HomeTeamPoints *int `json:"home_team_points"`
+	AwayTeamPoints *int `json:"away_team_points"`
+}
+
+func (a *Api) submitMatchScore(w http.ResponseWriter, r *http.Request) {
+	userId := r.Context().Value(UserIdKey).(int)
+	refereeID, dbErr := a.Database.GetRefereeIDByUserID(userId)
+	if dbErr != nil {
+		fail(w, dbErr)
+		return
+	}
+
+	var payload PayloadSubmitScore
+	if err := loadPayload(&payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	if err := a.Database.SubmitMatchScore(*payload.MatchID, refereeID, *payload.HomeTeamPoints, *payload.AwayTeamPoints); err != nil {
+		fail(w, err)
+		return
+	}
+
+	ok(w, http.StatusOK, "match score submitted", nil)
+}

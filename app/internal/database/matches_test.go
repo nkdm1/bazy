@@ -575,3 +575,59 @@ func TestGetMatchAssignmentHistory(t *testing.T) {
 		}
 	}
 }
+
+func TestSubmitMatchScore(t *testing.T) {
+	db := testDB(t)
+
+	// Create match
+	matchID, _, _, cleanupMatch := createTestMatch(t, db, "scheduled", 2)
+	defer cleanupMatch()
+
+	// Ensure crew_chief role exists
+	var roleID int
+	roleRow, roleCancel := db.queryRow(`SELECT id FROM role_in_match WHERE match_role = 'crew_chief'`)
+	err := roleRow.Scan(&roleID)
+	roleCancel()
+	if err != nil {
+		res, _ := db.exec(`INSERT INTO role_in_match (match_role) VALUES ('crew_chief')`)
+		id, _ := res.LastInsertId()
+		roleID = int(id)
+	}
+
+	// Create wage for this match
+	db.exec(`INSERT INTO wages (match_level, role_in_match, fee, valid_from) VALUES ('okregowa', ?, 150.00, '2020-01-01')`, roleID)
+
+	refereeID, cleanupReferee := createTestReferee(t, db)
+	defer cleanupReferee()
+
+	db.exec(`INSERT INTO match_assignments (referee_id, match_id, role, assignment_status) VALUES (?, ?, ?, 'accepted')`, refereeID, matchID, roleID)
+
+	// Test non-crew-chief or pending assignment
+	errForbidden := db.SubmitMatchScore(matchID, refereeID+1, 80, 70)
+	if !errors.Is(errForbidden, types.ErrForbidden) {
+		t.Errorf("expected ErrForbidden, got: %v", errForbidden)
+	}
+
+	err = db.SubmitMatchScore(matchID, refereeID, 80, 70)
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	var status string
+	var hPts, aPts int
+	matchRow, matchCancel := db.queryRow(`SELECT status, home_team_points, away_team_points FROM matches WHERE id = ?`, matchID)
+	matchRow.Scan(&status, &hPts, &aPts)
+	matchCancel()
+	if status != "completed" || hPts != 80 || aPts != 70 {
+		t.Errorf("match not updated correctly, got: %s %d %d", status, hPts, aPts)
+	}
+
+	// Verify payout was created
+	var count int
+	countRow, countCancel := db.queryRow(`SELECT count(*) FROM payouts p JOIN match_assignments ma ON p.assignment_id = ma.id WHERE ma.match_id = ?`, matchID)
+	countRow.Scan(&count)
+	countCancel()
+	if count != 1 {
+		t.Errorf("expected 1 payout, got %d", count)
+	}
+}
