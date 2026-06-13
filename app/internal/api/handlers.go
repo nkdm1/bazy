@@ -8,6 +8,7 @@ import (
 	"io"
 	"log"
 	"maps"
+	"math/rand"
 	"net/http"
 	"reflect"
 	"strconv"
@@ -646,8 +647,9 @@ func (a *Api) submitLicenseRequest(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// fake data
 	issuedAt := time.Now()
-	expireAt := issuedAt.AddDate(1, 0, 0) // Valid for 1 year by default
+	expireAt := issuedAt.AddDate(0, rand.Intn(12)+1, rand.Intn(31))
 
 	err = a.Database.InsertLicense(refereeID, licenseNameID, *payload.LicenseNumber, issuedAt, expireAt)
 	if err != nil {
