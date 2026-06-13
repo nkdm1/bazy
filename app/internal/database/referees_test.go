@@ -179,6 +179,39 @@ func TestPhoneChangeToken(t *testing.T) {
 	})
 }
 
+func TestGetAvailableReferees(t *testing.T) {
+	db := testDB(t)
 
+	refereeID, cleanupRef := createTestReferee(t, db)
+	defer cleanupRef()
 
+	date := time.Now().AddDate(0, 0, 10).Truncate(time.Hour * 24)
 
+	db.exec(`INSERT INTO availability (referee_id, available_date) VALUES (?, ?)`, refereeID, date.Format("2006-01-02"))
+	
+	refs, err := db.GetAvailableReferees(date.Add(12 * time.Hour))
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	if len(refs) != 1 {
+		t.Fatalf("expected 1 available referee, got: %d", len(refs))
+	}
+
+	matchID, _, _, cleanupMatch := createTestMatch(t, db, "scheduled", 2)
+	defer cleanupMatch()
+	
+	db.exec(`UPDATE matches SET match_start = ?, match_end = ? WHERE id = ?`, date.Add(12*time.Hour), date.Add(14*time.Hour), matchID)
+	
+	_, cleanupAssign := createTestMatchAssignment(t, db, refereeID, matchID)
+	defer cleanupAssign()
+
+	refs, err = db.GetAvailableReferees(date.Add(12 * time.Hour))
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	if len(refs) != 0 {
+		t.Fatalf("expected 0 available referees, got: %d", len(refs))
+	}
+}

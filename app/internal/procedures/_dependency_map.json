@@ -180,7 +180,7 @@
     },
 
     "search_available_referees": {
-      "status": "pending",
+      "status": "done",
       "role": "admin",
       "depends_on": ["set_user_as_referee", "availability"],
       "priority_layer": 4,

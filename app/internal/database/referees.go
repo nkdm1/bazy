@@ -364,5 +364,70 @@ func (db *Database) ConsumePhoneChangeToken(tokenHash string) types.ErrorApi {
 
 	return nil
 }
+func (db *Database) GetAvailableReferees(date time.Time) ([]RefereeProfile, types.ErrorApi) {
+	query := `
+		SELECT DISTINCT
+			u.name, u.surname, u.email, COALESCE(r.phone, ''),
+			a.postcode, a.city, COALESCE(a.street, ''), a.street_number, COALESCE(a.flat_number, ''),
+			r.id
+		FROM users u
+		JOIN referees r ON u.id = r.user_id
+		JOIN address a ON r.address_id = a.id
+		JOIN availability av ON r.id = av.referee_id
+		WHERE u.deleted_at IS NULL
+		  AND av.available_date = ?
+		  AND NOT EXISTS (
+			  SELECT 1 FROM match_assignments ma
+			  JOIN matches m ON ma.match_id = m.id
+			  WHERE ma.referee_id = r.id
+				AND DATE(m.match_start) = DATE(?)
+				AND ma.assignment_status IN ('assigned', 'accepted')
+		  )
+	`
+	rows, cancel, err := db.query(query, date.Format("2006-01-02"), date)
+	defer cancel()
 
+	if err != nil {
+		log.Printf("[ERROR]: DB error fetching available referees: %v", err)
+		return nil, types.ErrInternalServer
+	}
+	defer rows.Close()
 
+	var list []RefereeProfile
+	for rows.Next() {
+		var profile RefereeProfile
+		var refID int
+		if err := rows.Scan(
+			&profile.Name, &profile.Surname, &profile.Email, &profile.Phone,
+			&profile.Postcode, &profile.City, &profile.Street, &profile.StreetNumber, &profile.FlatNumber,
+			&refID,
+		); err != nil {
+			log.Printf("[ERROR]: DB error scanning available referee: %v", err)
+			return nil, types.ErrInternalServer
+		}
+		
+		lRows, lCancel, lErr := db.query(`
+			SELECT l.license_number, ln.license_name, l.issued_at, l.expire_at
+			FROM licenses l
+			JOIN licenses_names ln ON l.license_name_id = ln.id
+			WHERE l.referee_id = ?
+		`, refID)
+		if lErr == nil {
+			profile.Licenses = []LicenseEntry{}
+			for lRows.Next() {
+				var lic LicenseEntry
+				if lRows.Scan(&lic.LicenseNumber, &lic.LicenseName, &lic.IssuedAt, &lic.ExpireAt) == nil {
+					profile.Licenses = append(profile.Licenses, lic)
+				}
+			}
+			lRows.Close()
+		}
+		lCancel()
+
+		list = append(list, profile)
+	}
+	if list == nil {
+		list = []RefereeProfile{}
+	}
+	return list, nil
+}

@@ -890,3 +890,25 @@ func (a *Api) rescheduleMatch(w http.ResponseWriter, r *http.Request) {
 	}
 	ok(w, http.StatusOK, "match rescheduled", nil)
 }
+
+func (a *Api) searchAvailableReferees(w http.ResponseWriter, r *http.Request) {
+	dateStr := r.URL.Query().Get("date")
+	if dateStr == "" {
+		fail(w, types.ErrInvalidPayload)
+		return
+	}
+
+	date, err := time.Parse("2006-01-02", dateStr)
+	if err != nil {
+		fail(w, types.ErrInvalidPayload)
+		return
+	}
+
+	refs, apiErr := a.Database.GetAvailableReferees(date)
+	if apiErr != nil {
+		fail(w, apiErr)
+		return
+	}
+
+	ok(w, http.StatusOK, "available referees", refs)
+}

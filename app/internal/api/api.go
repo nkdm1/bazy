@@ -60,6 +60,7 @@ func (a *Api) Mount() http.Handler {
 			r.Post("/match/cancel", a.cancelMatch)
 			r.Post("/match/reschedule", a.rescheduleMatch)
 			r.Get("/referees", a.getRefereeDirectory)
+			r.Get("/referees/available", a.searchAvailableReferees)
 		})
 		r.Route("/register", func(r chi.Router) {
 			r.Post("/", a.register)
