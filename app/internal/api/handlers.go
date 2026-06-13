@@ -444,6 +444,11 @@ func (a *Api) updateWages(w http.ResponseWriter, r *http.Request) {
 		fail(w, types.ErrInvalidPayload)
 		return
 	}
+	
+	if *payload.Fee < 0 {
+		fail(w, types.ErrInvalidPayload)
+		return
+	}
 
 	roleInMatchID, err := a.Database.GetRoleInMatchID(*payload.MatchRole)
 	if err != nil {
@@ -463,40 +468,7 @@ func (a *Api) updateWages(w http.ResponseWriter, r *http.Request) {
 // HELPER FUNCTIONS
 // =========================================================================
 
-func (a *Api) setRefereeProfile(w http.ResponseWriter, r *http.Request) {
-	payload := new(struct {
-		Email        *string `json:"email"`
-		Phone        *string `json:"phone"`
-		Postcode     *string `json:"postcode"`
-		City         *string `json:"city"`
-		Street       string  `json:"street"`
-		StreetNumber *string `json:"street_number"`
-		FlatNumber   string  `json:"flat_number"`
-	})
-	if err := loadPayload(payload, r.Body); err != nil {
-		fail(w, err)
-		return
-	}
 
-	postcode := *payload.Postcode
-	if len(postcode) != 6 || postcode[2] != '-' {
-		fail(w, types.ErrInvalidPayload)
-		return
-	}
-
-	targetUserID, lookupErr := a.Database.GetUserByEmail(*payload.Email)
-	if lookupErr != nil {
-		fail(w, types.ErrNotFound)
-		return
-	}
-
-	if err := a.Database.SetUserAsReferee(targetUserID, *payload.Phone, postcode, *payload.City, payload.Street, *payload.StreetNumber, payload.FlatNumber); err != nil {
-		fail(w, err)
-		return
-	}
-
-	ok(w, http.StatusOK, "referee profile created", nil)
-}
 
 // createTeam inserts a new team into the teams table.
 func (a *Api) createTeam(w http.ResponseWriter, r *http.Request) {
@@ -692,7 +664,7 @@ func (a *Api) requestNewPhone(w http.ResponseWriter, r *http.Request) {
 		NextStep       string `json:"next_step"`
 	})
 	response.FakeSMSMessage = tokenHex
-	response.NextStep = "/referee/setPhone/confirm"
+	response.NextStep = "/user/setPhone/confirm"
 
 	ok(w, http.StatusOK, "confirm your new phone number", response)
 }
@@ -1249,10 +1221,9 @@ func (a *Api) getMonthlyPayoutReport(w http.ResponseWriter, r *http.Request) {
 	ok(w, http.StatusOK, "monthly payout report", report)
 }
 
-// updateUserProfile allows an authenticated user to update their phone and address
+// updateUserProfile allows an authenticated user to update their address
 func (a *Api) updateUserProfile(w http.ResponseWriter, r *http.Request) {
 	payload := new(struct {
-		Phone        string `json:"phone"`
 		Postcode     string `json:"postcode"`
 		City         string `json:"city"`
 		Street       string `json:"street"`
@@ -1274,7 +1245,7 @@ func (a *Api) updateUserProfile(w http.ResponseWriter, r *http.Request) {
 
 	userID := r.Context().Value(UserIdKey).(int)
 	
-	if err := a.Database.UpdateUserProfile(userID, payload.Phone, postcode, payload.City, payload.Street, payload.StreetNumber, payload.FlatNumber); err != nil {
+	if err := a.Database.UpdateUserProfile(userID, postcode, payload.City, payload.Street, payload.StreetNumber, payload.FlatNumber); err != nil {
 		fail(w, err)
 		return
 	}

@@ -105,23 +105,18 @@ func TestUpdateUserProfile(t *testing.T) {
 		userID, cleanupUser := createTestUser(t, db)
 		defer cleanupUser()
 
-		err := db.UpdateUserProfile(userID, "123456789", "00-001", "Warsaw", "Main St", "10", "A")
+		err := db.UpdateUserProfile(userID, "00-001", "Warsaw", "Main St", "10", "A")
 		if err != nil {
 			t.Fatalf("expected no error, got: %v", err)
 		}
 
 		// check if address was created
 		var addressID int
-		var phone string
-		row, cancel := db.queryRow("SELECT address_id, phone FROM users WHERE id = ?", userID)
-		scanErr := row.Scan(&addressID, &phone)
+		row, cancel := db.queryRow("SELECT address_id FROM users WHERE id = ?", userID)
+		scanErr := row.Scan(&addressID)
 		cancel()
 		if scanErr != nil {
 			t.Fatalf("failed to fetch user after profile update: %v", scanErr)
-		}
-
-		if phone != "123456789" {
-			t.Errorf("expected phone 123456789, got %v", phone)
 		}
 
 		if addressID <= 0 {
@@ -138,9 +133,15 @@ func TestApplyReferee(t *testing.T) {
 		defer cleanupUser()
 
 		// Fill the profile first
-		err := db.UpdateUserProfile(userID, "987654321", "11-111", "Krakow", "Long St", "20", "")
+		err := db.UpdateUserProfile(userID, "11-111", "Krakow", "Long St", "20", "")
 		if err != nil {
 			t.Fatalf("failed to update profile: %v", err)
+		}
+		
+		// Set phone directly because it's no longer updated by UpdateUserProfile
+		_, phoneErr := db.exec("UPDATE users SET phone = '987654321' WHERE id = ?", userID)
+		if phoneErr != nil {
+			t.Fatalf("failed to update phone: %v", phoneErr)
 		}
 
 		apiErr := db.ApplyReferee(userID)

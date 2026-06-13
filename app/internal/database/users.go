@@ -74,7 +74,7 @@ func (db *Database) InvalidateAllUserSessions(userID int) types.ErrorApi {
 }
 
 // UpdateUserProfile updates a user's phone and address.
-func (db *Database) UpdateUserProfile(userID int, phone, postcode, city, street, streetNumber, flatNumber string) types.ErrorApi {
+func (db *Database) UpdateUserProfile(userID int, postcode, city, street, streetNumber, flatNumber string) types.ErrorApi {
 	var flatNumPtr *string
 	if flatNumber != "" {
 		flatNumPtr = &flatNumber
@@ -83,10 +83,7 @@ func (db *Database) UpdateUserProfile(userID int, phone, postcode, city, street,
 	if street != "" {
 		streetPtr = &street
 	}
-	var phonePtr *string
-	if phone != "" {
-		phonePtr = &phone
-	}
+
 	var postcodePtr *string
 	if postcode != "" {
 		postcodePtr = &postcode
@@ -138,10 +135,7 @@ func (db *Database) UpdateUserProfile(userID int, phone, postcode, city, street,
 		}
 	}
 
-	_, err = db.exec(`UPDATE users SET phone = ? WHERE id = ?`, phonePtr, userID)
-	if err != nil {
-		return types.ErrInternalServer
-	}
+
 	return nil
 }
 
