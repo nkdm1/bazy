@@ -1,0 +1,339 @@
+{
+  "_readme": "Dependency map for all application procedures. 'depends_on' lists procedures that MUST be implemented first. 'status' is 'done' if already implemented in handlers.go/api.go, 'pending' otherwise. 'priority_layer' is computed: layer 1 = no dependencies (or only 'done' dependencies), layer 2 = depends on layer 1, etc. 'role' is the minimum role required to call the endpoint.",
+
+  "procedures": {
+
+    "create_user": {
+      "status": "done",
+      "role": "public",
+      "depends_on": [],
+      "priority_layer": 1,
+      "notes": "POST /register — already implemented"
+    },
+
+    "login": {
+      "status": "done",
+      "role": "public",
+      "depends_on": ["create_user"],
+      "priority_layer": 1,
+      "notes": "POST /login — already implemented"
+    },
+
+    "set_password": {
+      "status": "done",
+      "role": "authenticated",
+      "depends_on": ["login"],
+      "priority_layer": 2,
+      "notes": "GET /user/changePassword + POST /user/changePassword/confirm — already implemented"
+    },
+
+    "forgot_password": {
+      "status": "done",
+      "role": "public",
+      "depends_on": ["create_user"],
+      "priority_layer": 1,
+      "notes": "POST /forgotPassword + POST /forgotPassword/confirm — already implemented"
+    },
+
+    "set_email": {
+      "status": "done",
+      "role": "authenticated",
+      "depends_on": ["login"],
+      "priority_layer": 2,
+      "notes": "Already implemented in handlers.go"
+    },
+
+    "logout": {
+      "status": "pending",
+      "role": "authenticated",
+      "depends_on": ["login"],
+      "priority_layer": 2,
+      "notes": "POST /logout — simple token invalidation"
+    },
+
+    "delete_account": {
+      "status": "pending",
+      "role": "authenticated",
+      "depends_on": ["login"],
+      "priority_layer": 2,
+      "notes": "DELETE /user — soft delete via deleted_at field"
+    },
+
+    "set_user_as_referee": {
+      "status": "done",
+      "role": "admin",
+      "depends_on": ["login", "create_user"],
+      "priority_layer": 2,
+      "notes": "POST /user/referee — already implemented; promotes a user to referee role"
+    },
+
+    "set_phone": {
+      "status": "pending",
+      "role": "referee",
+      "depends_on": ["set_user_as_referee"],
+      "priority_layer": 3,
+      "notes": "POST /user/setPhone + POST /user/setPhone/confirm — follows same token flow as set_email"
+    },
+
+    "availability": {
+      "status": "done",
+      "role": "referee",
+      "depends_on": ["set_user_as_referee"],
+      "priority_layer": 3,
+      "notes": "POST /referee/availability — already implemented"
+    },
+
+    "remove_referee_availability": {
+      "status": "done",
+      "role": "referee",
+      "depends_on": ["set_user_as_referee", "availability"],
+      "priority_layer": 4,
+      "notes": "DELETE /referee/availability — already implemented"
+    },
+
+    "get_my_profile": {
+      "status": "pending",
+      "role": "referee",
+      "depends_on": ["set_user_as_referee"],
+      "priority_layer": 3,
+      "notes": "GET /referee/profile — returns personal info, address, and licenses"
+    },
+
+    "submit_license_request": {
+      "status": "pending",
+      "role": "referee",
+      "depends_on": ["set_user_as_referee"],
+      "priority_layer": 3,
+      "notes": "POST /referee/license — submits a license to a mocked external verifier; writes to licenses table on success"
+    },
+
+    "update_wages": {
+      "status": "pending",
+      "role": "admin",
+      "depends_on": ["login"],
+      "priority_layer": 2,
+      "notes": "POST /admin/wages — inserts a new wages row with valid_from=today to preserve history"
+    },
+
+    "create_team": {
+      "status": "pending",
+      "role": "admin",
+      "depends_on": ["login"],
+      "priority_layer": 2,
+      "notes": "POST /admin/team — inserts into teams table"
+    },
+
+    "create_venue": {
+      "status": "pending",
+      "role": "admin",
+      "depends_on": ["login"],
+      "priority_layer": 2,
+      "notes": "POST /admin/venue — inserts address then venue"
+    },
+
+    "create_match": {
+      "status": "pending",
+      "role": "admin",
+      "depends_on": ["create_team", "create_venue"],
+      "priority_layer": 3,
+      "notes": "POST /admin/match — requires teams and venue to already exist"
+    },
+
+    "get_upcoming_matches": {
+      "status": "pending",
+      "role": "public",
+      "depends_on": ["create_match"],
+      "priority_layer": 4,
+      "notes": "GET /matches/upcoming — public endpoint, joins match + teams + venues + accepted assignments"
+    },
+
+    "get_completed_matches": {
+      "status": "pending",
+      "role": "public",
+      "depends_on": ["create_match"],
+      "priority_layer": 4,
+      "notes": "GET /matches/completed — public endpoint, returns scores for completed matches"
+    },
+
+    "get_match_details": {
+      "status": "pending",
+      "role": "public",
+      "depends_on": ["create_match"],
+      "priority_layer": 4,
+      "notes": "GET /matches/{match_id} — public, comprehensive single match view"
+    },
+
+    "cancel_match": {
+      "status": "pending",
+      "role": "admin",
+      "depends_on": ["create_match"],
+      "priority_layer": 4,
+      "notes": "POST /admin/match/cancel — also cascades to cancel all active assignments"
+    },
+
+    "reschedule_match": {
+      "status": "pending",
+      "role": "admin",
+      "depends_on": ["create_match"],
+      "priority_layer": 4,
+      "notes": "POST /admin/match/reschedule — updates match_start and match_end"
+    },
+
+    "search_available_referees": {
+      "status": "pending",
+      "role": "admin",
+      "depends_on": ["set_user_as_referee", "availability"],
+      "priority_layer": 4,
+      "notes": "GET /admin/referees/available?date=... — filters by availability and excludes already-assigned referees"
+    },
+
+    "get_referee_directory": {
+      "status": "pending",
+      "role": "admin",
+      "depends_on": ["set_user_as_referee"],
+      "priority_layer": 3,
+      "notes": "GET /admin/referees — returns all referees with contact and address info"
+    },
+
+    "assign_referee": {
+      "status": "pending",
+      "role": "admin",
+      "depends_on": ["create_match", "set_user_as_referee"],
+      "priority_layer": 4,
+      "notes": "POST /admin/assignment — creates a 'pending' match_assignment record"
+    },
+
+    "check_pending_assignments": {
+      "status": "pending",
+      "role": "referee",
+      "depends_on": ["assign_referee"],
+      "priority_layer": 5,
+      "notes": "GET /referee/assignments/pending — lists pending assignments for the authenticated referee"
+    },
+
+    "respond_to_assignment": {
+      "status": "pending",
+      "role": "referee",
+      "depends_on": ["assign_referee"],
+      "priority_layer": 5,
+      "notes": "POST /referee/assignment/respond — accepts or declines a pending assignment"
+    },
+
+    "cancel_assignment": {
+      "status": "pending",
+      "role": "referee",
+      "depends_on": ["respond_to_assignment"],
+      "priority_layer": 6,
+      "notes": "POST /referee/assignment/cancel — cancels a previously accepted assignment"
+    },
+
+    "get_referee_schedule": {
+      "status": "pending",
+      "role": "referee",
+      "depends_on": ["respond_to_assignment"],
+      "priority_layer": 6,
+      "notes": "GET /referee/schedule — lists upcoming accepted assignments for the authenticated referee"
+    },
+
+    "mark_noshow": {
+      "status": "pending",
+      "role": "admin",
+      "depends_on": ["assign_referee"],
+      "priority_layer": 5,
+      "notes": "POST /admin/assignment/noshow — marks an accepted assignment as 'noshow'"
+    },
+
+    "get_match_assignment_history": {
+      "status": "pending",
+      "role": "admin",
+      "depends_on": ["assign_referee"],
+      "priority_layer": 5,
+      "notes": "GET /admin/match/{match_id}/assignments — full audit trail of all assignment statuses for a match"
+    },
+
+    "submit_match_score": {
+      "status": "pending",
+      "role": "referee",
+      "depends_on": ["respond_to_assignment", "update_wages"],
+      "priority_layer": 6,
+      "notes": "POST /referee/match/score — crew_chief only; marks match completed and triggers create_pending_payout for each accepted referee"
+    },
+
+    "create_pending_payout": {
+      "status": "pending",
+      "role": "internal",
+      "depends_on": ["submit_match_score", "update_wages"],
+      "priority_layer": 7,
+      "notes": "Internal procedure, called by submit_match_score. Resolves applicable wage and inserts 'pending' payout."
+    },
+
+    "rate_referee_performance": {
+      "status": "done",
+      "role": "admin",
+      "depends_on": ["submit_match_score"],
+      "priority_layer": 7,
+      "notes": "Already implemented; requires a completed match"
+    },
+
+    "get_referee_reviews": {
+      "status": "pending",
+      "role": "admin",
+      "depends_on": ["rate_referee_performance"],
+      "priority_layer": 8,
+      "notes": "GET /admin/referee/reviews — returns all reviews + average rating for a given referee"
+    },
+
+    "get_pending_payouts": {
+      "status": "pending",
+      "role": "admin",
+      "depends_on": ["create_pending_payout"],
+      "priority_layer": 8,
+      "notes": "POST /admin/payouts/pending — takes list of referee_ids and returns pending (not sent) amounts"
+    },
+
+    "mark_payouts_sent": {
+      "status": "pending",
+      "role": "admin",
+      "depends_on": ["create_pending_payout"],
+      "priority_layer": 8,
+      "notes": "POST /admin/payouts/sent — marks all pending payouts for given referee_ids as 'sent'"
+    },
+
+    "process_payouts": {
+      "status": "pending",
+      "role": "admin",
+      "depends_on": ["mark_payouts_sent"],
+      "priority_layer": 9,
+      "notes": "POST /admin/payouts/confirm — takes list of {payout_id, bank_transaction_id} and marks them as 'paid'"
+    },
+
+    "get_payout_history": {
+      "status": "pending",
+      "role": "referee",
+      "depends_on": ["create_pending_payout"],
+      "priority_layer": 8,
+      "notes": "GET /referee/payouts — full payout history for the authenticated referee"
+    },
+
+    "get_monthly_payout_report": {
+      "status": "pending",
+      "role": "admin",
+      "depends_on": ["process_payouts"],
+      "priority_layer": 10,
+      "notes": "GET /admin/payouts/report?year=&month= — aggregate paid totals broken down per referee for a given month"
+    }
+  },
+
+  "implementation_order": {
+    "layer_1_no_deps": ["create_user", "login", "forgot_password"],
+    "layer_2_auth_foundation": ["set_password", "set_email", "logout", "delete_account", "set_user_as_referee", "update_wages", "create_team", "create_venue"],
+    "layer_3_referee_foundation": ["set_phone", "availability", "get_my_profile", "submit_license_request", "get_referee_directory"],
+    "layer_4_match_foundation": ["create_match", "get_upcoming_matches", "get_completed_matches", "get_match_details", "cancel_match", "reschedule_match", "search_available_referees", "remove_referee_availability"],
+    "layer_5_assignments": ["assign_referee", "check_pending_assignments", "respond_to_assignment", "mark_noshow", "get_match_assignment_history"],
+    "layer_6_post_assignment": ["cancel_assignment", "get_referee_schedule", "submit_match_score"],
+    "layer_7_payouts_and_reviews": ["create_pending_payout", "rate_referee_performance"],
+    "layer_8_payout_management": ["get_pending_payouts", "mark_payouts_sent", "get_payout_history", "get_referee_reviews"],
+    "layer_9_payout_confirmation": ["process_payouts"],
+    "layer_10_reporting": ["get_monthly_payout_report"]
+  }
+}
