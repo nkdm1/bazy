@@ -652,7 +652,7 @@ func (a *Api) submitLicenseRequest(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// fake data
-	issuedAt := time.Now()
+	issuedAt := time.Now().AddDate(0,0,-1)
 	expireAt := issuedAt.AddDate(0, rand.Intn(12)+1, rand.Intn(31))
 
 	err = a.Database.InsertLicense(refereeID, licenseNameID, *payload.LicenseNumber, issuedAt, expireAt)

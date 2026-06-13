@@ -274,6 +274,7 @@ func cleanupDB() {
 		"DELETE FROM availability",
 		"DELETE FROM wages",
 		"DELETE FROM licenses",
+		"DELETE FROM licenses_names",
 		"DELETE FROM set_phone",
 		"DELETE FROM referees",
 		"DELETE FROM set_password",
@@ -281,6 +282,7 @@ func cleanupDB() {
 		"DELETE FROM auth_tokens",
 		"DELETE FROM users WHERE email != 'admin@example.com'",
 		"INSERT IGNORE INTO role_in_match (match_role) VALUES ('crew_chief'), ('umpire')",
+		"INSERT IGNORE INTO licenses_names (license_name) VALUES ('fiba')",
 		"SET FOREIGN_KEY_CHECKS = 1",
 	}
 
@@ -484,6 +486,22 @@ func getSteps() []Step {
 				doReq(ref2Client, "POST", "/login", map[string]interface{}{"email": "jane@referee.com", "password": "password"})
 				doReq(ref3Client, "POST", "/login", map[string]interface{}{"email": "mark@referee.com", "password": "password"})
 				return doReq(refereeClient, "POST", "/login", map[string]interface{}{"email": "john@referee.com", "password": "password"})
+			},
+		},
+		{
+			Scene:   "SCENE 2: REFEREE ONBOARDING",
+			Desc:    "Referees submit external license validation requests (Silent bulk)",
+			Caller:  "Referee",
+			Method:  "POST",
+			MultiPath: []string{"/referee/license", "/referee/license", "/referee/license"},
+			RawBody: func() string {
+				return "body1:\n{\n  \"license_name\": \"fiba\",\n  \"license_number\": \"FIBA-JOHN-001\",\n  \"accept\": true\n}\nbody2:\n{\n  \"license_name\": \"fiba\",\n  \"license_number\": \"FIBA-JANE-002\",\n  \"accept\": true\n}\nbody3:\n{\n  \"license_name\": \"fiba\",\n  \"license_number\": \"FIBA-MARK-003\",\n  \"accept\": true\n}"
+			},
+			Do: func() string {
+				r2 := doReq(ref2Client, "POST", "/referee/license", map[string]interface{}{"license_name": "fiba", "license_number": "FIBA-JANE-002", "accept": true})
+				r3 := doReq(ref3Client, "POST", "/referee/license", map[string]interface{}{"license_name": "fiba", "license_number": "FIBA-MARK-003", "accept": true})
+				r1 := doReq(refereeClient, "POST", "/referee/license", map[string]interface{}{"license_name": "fiba", "license_number": "FIBA-JOHN-001", "accept": true})
+				return r1 + "\n" + r2 + "\n" + r3
 			},
 		},
 		{

@@ -438,7 +438,7 @@ func (db *Database) GetAvailableReferees(date time.Time) ([]RefereeProfile, type
 func (db *Database) HasValidLicense(refereeID int) bool {
 	row, cancel := db.queryRow(`
 		SELECT COUNT(*) FROM licenses
-		WHERE referee_id = ? AND expire_at >= CURDATE() AND issued_at <= CURDATE();
+		WHERE referee_id = ? AND expire_at >= CURDATE();
 	`, refereeID)
 	defer cancel()
 
