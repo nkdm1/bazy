@@ -43,6 +43,7 @@ func (a *Api) Mount() http.Handler {
 			r.Use(a.adminOnly)
 			r.Post("/wages", a.updateWages)
 			r.Post("/referee", a.setRefereeProfile)
+			r.Post("/teams", a.createTeam)
 		})
 		r.Route("/register", func(r chi.Router) {
 			r.Post("/", a.register)

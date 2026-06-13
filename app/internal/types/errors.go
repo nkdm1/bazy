@@ -53,6 +53,10 @@ var (
 		Message: "forbidden access",
 		Status:  http.StatusForbidden,
 	}
+	ErrConflict = &apiError{
+		Message: "conflict, resource already exists",
+		Status:  http.StatusConflict,
+	}
 )
 
 type ErrMissingRequiredFields struct {

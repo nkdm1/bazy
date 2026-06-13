@@ -485,6 +485,26 @@ func (a *Api) setRefereeProfile(w http.ResponseWriter, r *http.Request) {
 	ok(w, http.StatusOK, "referee profile created", nil)
 }
 
+// createTeam inserts a new team into the teams table.
+func (a *Api) createTeam(w http.ResponseWriter, r *http.Request) {
+	payload := new(struct {
+		Name *string `json:"name"`
+		City *string `json:"city"`
+	})
+	if err := loadPayload(payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	if err := a.Database.CreateTeam(*payload.Name, *payload.City); err != nil {
+		fail(w, err)
+		return
+	}
+
+	ok(w, http.StatusCreated, "team created successfully", nil)
+}
+
+
 // ok writes a successful http response status code `status`
 // with `message` attached and, optionally, any `data` provided
 //
