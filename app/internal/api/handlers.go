@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/nkdm1/bazy/internal/database"
 	"github.com/nkdm1/bazy/internal/misc"
 	"github.com/nkdm1/bazy/internal/types"
 )
@@ -1155,4 +1156,40 @@ func (a *Api) markPayoutsSent(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ok(w, http.StatusOK, "payouts marked as sent", nil)
+}
+
+type PayloadProcessPayouts struct {
+	Confirmations []database.PayoutConfirmation `json:"confirmations"`
+}
+
+func (a *Api) processPayouts(w http.ResponseWriter, r *http.Request) {
+	var payload PayloadProcessPayouts
+	if err := loadPayload(&payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	if dbErr := a.Database.ProcessPayouts(payload.Confirmations); dbErr != nil {
+		fail(w, dbErr)
+		return
+	}
+
+	ok(w, http.StatusOK, "payouts processed", nil)
+}
+
+func (a *Api) getPayoutHistory(w http.ResponseWriter, r *http.Request) {
+	userId := r.Context().Value(UserIdKey).(int)
+	refereeID, dbErr := a.Database.GetRefereeIDByUserID(userId)
+	if dbErr != nil {
+		fail(w, dbErr)
+		return
+	}
+
+	history, err := a.Database.GetPayoutHistory(refereeID)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+
+	ok(w, http.StatusOK, "payout history", history)
 }

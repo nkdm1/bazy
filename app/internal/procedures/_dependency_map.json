@@ -308,7 +308,7 @@
     },
 
     "process_payouts": {
-      "status": "pending",
+      "status": "done",
       "role": "admin",
       "depends_on": ["mark_payouts_sent"],
       "priority_layer": 9,
@@ -316,11 +316,11 @@
     },
 
     "get_payout_history": {
-      "status": "pending",
+      "status": "done",
       "role": "referee",
       "depends_on": ["create_pending_payout"],
-      "priority_layer": 8,
-      "notes": "GET /referee/payouts — full payout history for the authenticated referee"
+      "priority_layer": 9,
+      "notes": "GET /referee/payouts — returns history of all payouts for the referee (pending, sent, paid)"
     },
 
     "get_monthly_payout_report": {

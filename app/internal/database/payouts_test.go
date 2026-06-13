@@ -157,3 +157,58 @@ func TestMarkPayoutsSent(t *testing.T) {
 		t.Fatalf("expected no error, got %v", err)
 	}
 }
+
+func TestProcessPayouts(t *testing.T) {
+	db := testDB(t)
+
+	refereeID, cleanupRef := createTestReferee(t, db)
+	defer cleanupRef()
+
+	matchID, _, _, cleanupMatch := createTestMatch(t, db, "completed", -10)
+	defer cleanupMatch()
+	assignID, cleanupAssign := createTestMatchAssignment(t, db, refereeID, matchID)
+	defer cleanupAssign()
+
+	payoutID, _, cleanupPayout := createTestPayout(t, db, assignID, time.Time{})
+	defer cleanupPayout()
+	db.exec(`UPDATE payouts SET status = 'sent' WHERE id = ?`, payoutID)
+
+	err := db.ProcessPayouts([]PayoutConfirmation{{PayoutID: payoutID, BankTransactionID: "tx_123"}})
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	var status, txID string
+	row, cancel := db.queryRow(`SELECT status, bank_transaction_id FROM payouts WHERE id = ?`, payoutID)
+	row.Scan(&status, &txID)
+	cancel()
+	if status != "paid" || txID != "tx_123" {
+		t.Errorf("expected paid and tx_123, got %s and %s", status, txID)
+	}
+}
+
+func TestGetPayoutHistory(t *testing.T) {
+	db := testDB(t)
+
+	refereeID, cleanupRef := createTestReferee(t, db)
+	defer cleanupRef()
+
+	matchID, _, _, cleanupMatch := createTestMatch(t, db, "completed", -10)
+	defer cleanupMatch()
+	assignID, cleanupAssign := createTestMatchAssignment(t, db, refereeID, matchID)
+	defer cleanupAssign()
+
+	createTestPayout(t, db, assignID, time.Time{})
+
+	history, err := db.GetPayoutHistory(refereeID)
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+
+	if len(history) != 1 {
+		t.Fatalf("expected 1 history item, got %d", len(history))
+	}
+	if history[0].AssignmentID != assignID {
+		t.Errorf("expected assignment %d, got %d", assignID, history[0].AssignmentID)
+	}
+}
