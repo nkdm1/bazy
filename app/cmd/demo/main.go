@@ -490,18 +490,15 @@ func getSteps() []Step {
 		},
 		{
 			Scene:   "SCENE 2: REFEREE ONBOARDING",
-			Desc:    "Referees submit external license validation requests (Silent bulk)",
+			Desc:    "Referee submits external license validation request (Others run silently)",
 			Caller:  "Referee (john@referee.com)",
 			Method:  "POST",
-			MultiPath: []string{"/referee/license", "/referee/license", "/referee/license"},
-			RawBody: func() string {
-				return "body1:\n{\n  \"license_name\": \"fiba\",\n  \"license_number\": \"FIBA-JOHN-001\",\n  \"accept\": true\n}\nbody2:\n{\n  \"license_name\": \"fiba\",\n  \"license_number\": \"FIBA-JANE-002\",\n  \"accept\": true\n}\nbody3:\n{\n  \"license_name\": \"fiba\",\n  \"license_number\": \"FIBA-MARK-003\",\n  \"accept\": true\n}"
-			},
+			Path:    "/referee/license",
+			Payload: func() interface{} { return map[string]interface{}{"license_name": "fiba", "license_number": "FIBA-JOHN-001", "accept": true} },
 			Do: func() string {
-				r2 := doReq(ref2Client, "POST", "/referee/license", map[string]interface{}{"license_name": "fiba", "license_number": "FIBA-JANE-002", "accept": true})
-				r3 := doReq(ref3Client, "POST", "/referee/license", map[string]interface{}{"license_name": "fiba", "license_number": "FIBA-MARK-003", "accept": true})
-				r1 := doReq(refereeClient, "POST", "/referee/license", map[string]interface{}{"license_name": "fiba", "license_number": "FIBA-JOHN-001", "accept": true})
-				return r1 + "\n" + r2 + "\n" + r3
+				doReq(ref2Client, "POST", "/referee/license", map[string]interface{}{"license_name": "fiba", "license_number": "FIBA-JANE-002", "accept": true})
+				doReq(ref3Client, "POST", "/referee/license", map[string]interface{}{"license_name": "fiba", "license_number": "FIBA-MARK-003", "accept": true})
+				return doReq(refereeClient, "POST", "/referee/license", map[string]interface{}{"license_name": "fiba", "license_number": "FIBA-JOHN-001", "accept": true})
 			},
 		},
 		{
