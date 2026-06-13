@@ -521,3 +521,21 @@ func (db *Database) RevokeAssignment(matchID, refereeID int) types.ErrorApi {
 	}
 	return nil
 }
+
+func (db *Database) RespondToAssignment(matchID, refereeID int, accept bool) types.ErrorApi {
+	status := "declined"
+	if accept {
+		status = "accepted"
+	}
+
+	res, err := db.exec(`UPDATE match_assignments SET assignment_status = ? WHERE match_id = ? AND referee_id = ? AND assignment_status = 'pending'`, status, matchID, refereeID)
+	if err != nil {
+		log.Printf("[ERROR]: DB error responding to assignment: %v", err)
+		return types.ErrInternalServer
+	}
+	affected, _ := res.RowsAffected()
+	if affected == 0 {
+		return types.ErrNotFound
+	}
+	return nil
+}

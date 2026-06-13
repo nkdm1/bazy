@@ -951,3 +951,29 @@ func (a *Api) revokeAssignment(w http.ResponseWriter, r *http.Request) {
 	}
 	ok(w, http.StatusOK, "assignment revoked", nil)
 }
+
+type PayloadRespondToAssignment struct {
+	MatchID *int  `json:"match_id"`
+	Accept  *bool `json:"accept"`
+}
+
+func (a *Api) respondToAssignment(w http.ResponseWriter, r *http.Request) {
+	userId := r.Context().Value(UserIdKey).(int)
+	refereeID, dbErr := a.Database.GetRefereeIDByUserID(userId)
+	if dbErr != nil {
+		fail(w, dbErr)
+		return
+	}
+
+	var payload PayloadRespondToAssignment
+	if err := loadPayload(&payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	if err := a.Database.RespondToAssignment(*payload.MatchID, refereeID, *payload.Accept); err != nil {
+		fail(w, err)
+		return
+	}
+	ok(w, http.StatusOK, "assignment response recorded", nil)
+}

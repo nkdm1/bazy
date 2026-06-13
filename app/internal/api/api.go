@@ -64,6 +64,11 @@ func (a *Api) Mount() http.Handler {
 			r.Get("/referees", a.getRefereeDirectory)
 			r.Get("/referees/available", a.searchAvailableReferees)
 		})
+		r.Route("/referee", func(r chi.Router) {
+			r.Use(a.authorize)
+			r.Use(a.refereeOnly)
+			r.Post("/assignment/respond", a.respondToAssignment)
+		})
 		r.Route("/register", func(r chi.Router) {
 			r.Post("/", a.register)
 			r.Post("/confirm", a.updatePassword)

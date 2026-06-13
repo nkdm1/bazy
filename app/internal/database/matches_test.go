@@ -377,3 +377,38 @@ func TestRevokeAssignment(t *testing.T) {
 		t.Errorf("expected ErrNotFound, got: %v", errNotFound)
 	}
 }
+
+func TestRespondToAssignment(t *testing.T) {
+	db := testDB(t)
+
+	matchID, _, _, cleanupMatch := createTestMatch(t, db, "scheduled", 2)
+	defer cleanupMatch()
+
+	refereeID, cleanupReferee := createTestReferee(t, db)
+	defer cleanupReferee()
+
+	_, cleanupAssign := createTestMatchAssignment(t, db, refereeID, matchID)
+	defer cleanupAssign()
+
+	// Update assignment to pending first (createTestMatchAssignment sets it to accepted by default or pending? Let's assume accepted if we don't know, we will just update it)
+	db.exec(`UPDATE match_assignments SET assignment_status = 'pending' WHERE match_id = ? AND referee_id = ?`, matchID, refereeID)
+
+	err := db.RespondToAssignment(matchID, refereeID, true)
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	var status string
+	row, cancel := db.queryRow(`SELECT assignment_status FROM match_assignments WHERE match_id = ? AND referee_id = ?`, matchID, refereeID)
+	row.Scan(&status)
+	cancel()
+
+	if status != "accepted" {
+		t.Errorf("expected status 'accepted', got %s", status)
+	}
+
+	errNotFound := db.RespondToAssignment(999, 999, true)
+	if !errors.Is(errNotFound, types.ErrNotFound) {
+		t.Errorf("expected ErrNotFound, got: %v", errNotFound)
+	}
+}
