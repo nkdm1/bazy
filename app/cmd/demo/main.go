@@ -27,8 +27,11 @@ var (
 	// Global state for extracting IDs
 	matchID   int
 	refereeID int
+	ref2ID    int
+	ref3ID    int
 	payoutID  int
 	regToken  string
+	bankTxID  string
 
 	// Lipgloss styles
 	titleStyle = lipgloss.NewStyle().
@@ -66,6 +69,8 @@ type Step struct {
 	Method  string
 	Path    string
 	Payload func() interface{}
+	RawBody func() string
+	MultiPath []string
 	Do      func() string // Does the request and extracts state if needed
 }
 
@@ -149,12 +154,24 @@ func (m model) View() string {
 
 	// Prepare Left Panel
 	var reqBodyBytes []byte
-	if step.Payload != nil {
+	if step.RawBody != nil {
+		reqBodyBytes = []byte(step.RawBody())
+	} else if step.Payload != nil {
 		reqBodyBytes, _ = json.MarshalIndent(step.Payload(), "", "  ")
 	}
 
 	callerText := lipgloss.NewStyle().Foreground(lipgloss.Color("#FFFF00")).Bold(true).Render(fmt.Sprintf("Executing as: %s", step.Caller))
-	leftContent := callerText + "\n" + reqStyle.Render(fmt.Sprintf("[REQUEST] %s %s", step.Method, baseURL+step.Path))
+	var reqText string
+	if len(step.MultiPath) > 0 {
+		var reqs []string
+		for _, p := range step.MultiPath {
+			reqs = append(reqs, fmt.Sprintf("[REQUEST] %s %s", step.Method, baseURL+p))
+		}
+		reqText = strings.Join(reqs, "\n")
+	} else {
+		reqText = fmt.Sprintf("[REQUEST] %s %s", step.Method, baseURL+step.Path)
+	}
+	leftContent := callerText + "\n" + reqStyle.Render(reqText)
 	if step.Payload != nil {
 		leftContent += "\n\nBody:\n" + string(reqBodyBytes)
 	}
@@ -314,6 +331,17 @@ func getSteps() []Step {
 		},
 		{
 			Scene:   "SCENE 1: ADMIN DATA SETUP",
+			Desc:    "Admin schedules a match with non-existent venue (Error Demo)",
+			Caller:  "Admin",
+			Method:  "POST",
+			Path:    "/admin/matches",
+			Payload: func() interface{} { return map[string]interface{}{"home_team_name": "Team Alpha", "away_team_name": "Team Beta", "venue_name": "Bad Venue", "match_level": "fiba", "match_start": "2026-06-15T12:00:00Z", "match_end": "2026-06-15T14:00:00Z"} },
+			Do: func() string {
+				return doReq(adminClient, "POST", "/admin/matches", map[string]interface{}{"home_team_name": "Team Alpha", "away_team_name": "Team Beta", "venue_name": "Bad Venue", "match_level": "fiba", "match_start": "2026-06-15T12:00:00Z", "match_end": "2026-06-15T14:00:00Z"})
+			},
+		},
+		{
+			Scene:   "SCENE 1: ADMIN DATA SETUP",
 			Desc:    "Admin schedules a new match",
 			Caller:  "Admin",
 			Method:  "POST",
@@ -337,13 +365,19 @@ func getSteps() []Step {
 		},
 		{
 			Scene:   "SCENE 1: ADMIN DATA SETUP",
-			Desc:    "Admin sets wages for the FIBA league",
+			Desc:    "Admin sets wages for the FIBA league (Multiple)",
 			Caller:  "Admin",
 			Method:  "POST",
-			Path:    "/admin/wages",
-			Payload: func() interface{} { return map[string]interface{}{"match_level": "fiba", "match_role": "crew_chief", "fee": 150.0} },
+			MultiPath: []string{"/admin/wages", "/admin/wages", "/admin/wages", "/admin/wages"},
+			RawBody: func() string {
+				return "body1:\n{\n  \"fee\": 150,\n  \"match_level\": \"fiba\",\n  \"match_role\": \"crew_chief\"\n}\nbody2:\n{\n  \"fee\": 100,\n  \"match_level\": \"fiba\",\n  \"match_role\": \"umpire\"\n}\nbody3:\n{\n  \"fee\": 200,\n  \"match_level\": \"plk\",\n  \"match_role\": \"crew_chief\"\n}\nbody4:\n{\n  \"fee\": 150,\n  \"match_level\": \"plk\",\n  \"match_role\": \"umpire\"\n}"
+			},
 			Do: func() string {
-				return doReq(adminClient, "POST", "/admin/wages", map[string]interface{}{"match_level": "fiba", "match_role": "crew_chief", "fee": 150.0})
+				r1 := doReq(adminClient, "POST", "/admin/wages", map[string]interface{}{"match_level": "fiba", "match_role": "crew_chief", "fee": 150.0})
+				r2 := doReq(adminClient, "POST", "/admin/wages", map[string]interface{}{"match_level": "fiba", "match_role": "umpire", "fee": 100.0})
+				r3 := doReq(adminClient, "POST", "/admin/wages", map[string]interface{}{"match_level": "plk", "match_role": "crew_chief", "fee": 200.0})
+				r4 := doReq(adminClient, "POST", "/admin/wages", map[string]interface{}{"match_level": "plk", "match_role": "umpire", "fee": 150.0})
+				return r1 + "\n" + r2 + "\n" + r3 + "\n" + r4
 			},
 		},
 		{
@@ -378,12 +412,26 @@ func getSteps() []Step {
 		},
 		{
 			Scene:   "SCENE 2: REFEREE ONBOARDING",
-			Desc:    "Admin upgrades the user to a Referee",
+			Desc:    "Admin upgrades users to Referees (Silent bulk)",
 			Caller:  "Admin",
 			Method:  "POST",
 			Path:    "/admin/referee",
 			Payload: func() interface{} { return map[string]interface{}{"email": "john@referee.com", "phone": "123456789", "postcode": "00-001", "city": "Ref City", "street": "Ref St", "street_number": "1", "flat_number": ""} },
 			Do: func() string {
+				// Register others silently
+				res2 := doReq(viewerClient, "POST", "/register/", map[string]interface{}{"name": "Jane", "surname": "Smith", "email": "jane@referee.com"})
+				var rResp2 struct{ Data struct{ Token string `json:"fake_email_message"` } `json:"data"` }
+				json.Unmarshal([]byte(getRawJSON(res2)), &rResp2)
+				doReq(viewerClient, "POST", "/register/confirm", map[string]interface{}{"token": rResp2.Data.Token, "new_password": "password"})
+
+				res3 := doReq(viewerClient, "POST", "/register/", map[string]interface{}{"name": "Mark", "surname": "Doe", "email": "mark@referee.com"})
+				var rResp3 struct{ Data struct{ Token string `json:"fake_email_message"` } `json:"data"` }
+				json.Unmarshal([]byte(getRawJSON(res3)), &rResp3)
+				doReq(viewerClient, "POST", "/register/confirm", map[string]interface{}{"token": rResp3.Data.Token, "new_password": "password"})
+
+				doReq(adminClient, "POST", "/admin/referee", map[string]interface{}{"email": "jane@referee.com", "phone": "222222222", "postcode": "00-002", "city": "City", "street": "St", "street_number": "2", "flat_number": ""})
+				doReq(adminClient, "POST", "/admin/referee", map[string]interface{}{"email": "mark@referee.com", "phone": "333333333", "postcode": "00-003", "city": "City", "street": "St", "street_number": "3", "flat_number": ""})
+				
 				return doReq(adminClient, "POST", "/admin/referee", map[string]interface{}{"email": "john@referee.com", "phone": "123456789", "postcode": "00-001", "city": "Ref City", "street": "Ref St", "street_number": "1", "flat_number": ""})
 			},
 		},
@@ -397,6 +445,8 @@ func getSteps() []Step {
 			Do: func() string {
 				res := doReq(adminClient, "GET", "/admin/referee/directory", nil)
 				refereeID = extractRefereeID(res, "john@referee.com")
+				ref2ID = extractRefereeID(res, "jane@referee.com")
+				ref3ID = extractRefereeID(res, "mark@referee.com")
 				return res
 			},
 		},
@@ -424,13 +474,18 @@ func getSteps() []Step {
 		},
 		{
 			Scene:   "SCENE 3: MATCH ASSIGNMENT",
-			Desc:    "Admin assigns Referee to the Match",
+			Desc:    "Admin assigns Referees to the Match",
 			Caller:  "Admin",
 			Method:  "POST",
-			Path:    "/admin/match/assign",
-			Payload: func() interface{} { return map[string]interface{}{"match_id": matchID, "referee_id": refereeID, "role": "crew_chief"} },
+			MultiPath: []string{"/admin/match/assign", "/admin/match/assign", "/admin/match/assign"},
+			RawBody: func() string {
+				return fmt.Sprintf("body1:\n{\n  \"match_id\": %d,\n  \"referee_id\": %d,\n  \"role\": \"crew_chief\"\n}\nbody2:\n{\n  \"match_id\": %d,\n  \"referee_id\": %d,\n  \"role\": \"umpire\"\n}\nbody3:\n{\n  \"match_id\": %d,\n  \"referee_id\": %d,\n  \"role\": \"umpire\"\n}", matchID, refereeID, matchID, ref2ID, matchID, ref3ID)
+			},
 			Do: func() string {
-				return doReq(adminClient, "POST", "/admin/match/assign", map[string]interface{}{"match_id": matchID, "referee_id": refereeID, "role": "crew_chief"})
+				r1 := doReq(adminClient, "POST", "/admin/match/assign", map[string]interface{}{"match_id": matchID, "referee_id": refereeID, "role": "crew_chief"})
+				r2 := doReq(adminClient, "POST", "/admin/match/assign", map[string]interface{}{"match_id": matchID, "referee_id": ref2ID, "role": "umpire"})
+				r3 := doReq(adminClient, "POST", "/admin/match/assign", map[string]interface{}{"match_id": matchID, "referee_id": ref3ID, "role": "umpire"})
+				return r1 + "\n" + r2 + "\n" + r3
 			},
 		},
 		{
@@ -528,9 +583,22 @@ func getSteps() []Step {
 			Caller:  "Admin",
 			Method:  "POST",
 			Path:    "/admin/payouts/sent",
-			Payload: func() interface{} { return map[string]interface{}{"all": true} },
+			Payload: func() interface{} { return map[string]interface{}{"referee_ids": []int{refereeID, ref2ID, ref3ID}} },
 			Do: func() string {
-				return doReq(adminClient, "POST", "/admin/payouts/sent", map[string]interface{}{"all": true})
+				res := doReq(adminClient, "POST", "/admin/payouts/sent", map[string]interface{}{"referee_ids": []int{refereeID, ref2ID, ref3ID}})
+				// extract bank tx id from first element
+				var parsed map[string]interface{}
+				json.Unmarshal([]byte(getRawJSON(res)), &parsed)
+				if data, ok := parsed["data"].([]interface{}); ok && len(data) > 0 {
+					item := data[0].(map[string]interface{})
+					if tx, ok := item["bank_transaction_id"].(string); ok {
+						bankTxID = tx
+					}
+					if pID, ok := item["payout_id"].(float64); ok {
+						payoutID = int(pID)
+					}
+				}
+				return res
 			},
 		},
 		{
@@ -551,10 +619,10 @@ func getSteps() []Step {
 			Caller:  "Admin",
 			Method:  "POST",
 			Path:    "/admin/payouts/confirm",
-			Payload: func() interface{} { return map[string]interface{}{"confirmations": []map[string]interface{}{{"bank_transaction_id": "TX_999888777"}}} },
+			Payload: func() interface{} { return map[string]interface{}{"confirmations": []map[string]interface{}{{"payout_id": payoutID, "bank_transaction_id": bankTxID}}} },
 			Do: func() string {
 				return doReq(adminClient, "POST", "/admin/payouts/confirm", map[string]interface{}{
-					"confirmations": []map[string]interface{}{{"payout_id": payoutID, "bank_transaction_id": "TX_999888777"}},
+					"confirmations": []map[string]interface{}{{"payout_id": payoutID, "bank_transaction_id": bankTxID}},
 				})
 			},
 		},

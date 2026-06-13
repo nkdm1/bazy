@@ -1156,17 +1156,18 @@ func (a *Api) markPayoutsSent(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if !payload.All && len(payload.RefereeIDs) == 0 {
+	if len(payload.RefereeIDs) == 0 {
 		fail(w, types.ErrInvalidPayload)
 		return
 	}
 
-	if dbErr := a.Database.MarkPayoutsSent(payload.RefereeIDs, payload.All); dbErr != nil {
+	results, dbErr := a.Database.MarkPayoutsSent(payload.RefereeIDs)
+	if dbErr != nil {
 		fail(w, dbErr)
 		return
 	}
 
-	ok(w, http.StatusOK, "payouts marked as sent", nil)
+	ok(w, http.StatusOK, "payouts marked as sent", results)
 }
 
 type PayloadProcessPayouts struct {

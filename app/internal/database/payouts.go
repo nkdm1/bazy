@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
+	"math/rand"
 	"log"
 	"time"
 
@@ -176,38 +178,81 @@ func (db *Database) GetPendingPayouts(refereeIDs []int, all bool) ([]PendingPayo
 	return results, nil
 }
 
-func (db *Database) MarkPayoutsSent(refereeIDs []int, all bool) types.ErrorApi {
-	if !all && len(refereeIDs) == 0 {
-		return nil
+type SentPayoutResult struct {
+	PayoutID          int    `json:"payout_id"`
+	BankTransactionID string `json:"bank_transaction_id"`
+}
+
+func (db *Database) MarkPayoutsSent(refereeIDs []int) ([]SentPayoutResult, types.ErrorApi) {
+	if len(refereeIDs) == 0 {
+		return []SentPayoutResult{}, nil
 	}
 
 	query := `
-		UPDATE payouts p
+		SELECT p.id
+		FROM payouts p
 		JOIN match_assignments ma ON p.assignment_id = ma.id
-		SET p.status = 'sent'
-		WHERE p.status = 'pending'`
+		WHERE p.status = 'pending' AND ma.referee_id IN (`
 	
-	var args []interface{}
-	if !all {
-		query += ` AND ma.referee_id IN (`
-		args = make([]interface{}, len(refereeIDs))
-		for i, id := range refereeIDs {
-			args[i] = id
-			if i > 0 {
-				query += ", "
-			}
-			query += "?"
+	args := make([]interface{}, len(refereeIDs))
+	for i, id := range refereeIDs {
+		args[i] = id
+		if i > 0 {
+			query += ", "
 		}
-		query += `)`
+		query += "?"
 	}
+	query += `)`
 
-	_, err := db.exec(query, args...)
+	rows, cancel, err := db.query(query, args...)
+	defer cancel()
 	if err != nil {
-		log.Printf("[ERROR]: DB error marking payouts sent: %v", err)
-		return types.ErrInternalServer
+		log.Printf("[ERROR]: DB error getting payouts to mark sent: %v", err)
+		return nil, types.ErrInternalServer
 	}
 
-	return nil
+	var payoutIDs []int
+	for rows.Next() {
+		var pid int
+		if err := rows.Scan(&pid); err == nil {
+			payoutIDs = append(payoutIDs, pid)
+		}
+	}
+	rows.Close()
+
+	if len(payoutIDs) == 0 {
+		return []SentPayoutResult{}, nil
+	}
+
+	results := []SentPayoutResult{}
+	tx, err := db.instance.Begin()
+	if err != nil {
+		log.Printf("[ERROR]: Begin tx error: %v", err)
+		return nil, types.ErrInternalServer
+	}
+	defer tx.Rollback()
+
+	stmt, err := tx.Prepare(`UPDATE payouts SET status = 'sent', bank_transaction_id = ? WHERE id = ?`)
+	if err != nil {
+		return nil, types.ErrInternalServer
+	}
+	defer stmt.Close()
+
+	for _, pid := range payoutIDs {
+		txID := fmt.Sprintf("TX%d", rand.Intn(1000000)+100000)
+		_, err := stmt.Exec(txID, pid)
+		if err != nil {
+			log.Printf("[ERROR]: Exec error: %v", err)
+			return nil, types.ErrInternalServer
+		}
+		results = append(results, SentPayoutResult{PayoutID: pid, BankTransactionID: txID})
+	}
+
+	if err := tx.Commit(); err != nil {
+		return nil, types.ErrInternalServer
+	}
+
+	return results, nil
 }
 
 type PayoutConfirmation struct {

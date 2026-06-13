@@ -30,7 +30,7 @@ func TestDemoSequence(t *testing.T) {
 		
 		// The `doReq` function returns the response body and status
 		// We expect no "error" key or "Status: 4xx/5xx" in the output
-		if strings.Contains(res, `"error"`) || strings.Contains(res, "Status: 4") || strings.Contains(res, "Status: 5") {
+		if (strings.Contains(res, `"error"`) || strings.Contains(res, "Status: 4") || strings.Contains(res, "Status: 5")) && !strings.Contains(step.Desc, "(Error Demo)") {
 			t.Fatalf("Step %d (%s) failed!\nMethod: %s\nPath: %s\nResponse:\n%s", i+1, step.Desc, step.Method, step.Path, res)
 		}
 	}
