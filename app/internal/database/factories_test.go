@@ -34,17 +34,23 @@ func createTestAddress(t *testing.T, db *Database) (int, func()) {
 func createTestReferee(t *testing.T, db *Database) (int, func()) {
 	t.Helper()
 	userID, cleanupUser := createTestUser(t, db)
-	addressID, cleanupAddress := createTestAddress(t, db)
 
-	res, err := db.exec(`INSERT INTO referees (user_id, address_id) VALUES (?, ?)`, userID, addressID)
+	res, err := db.exec(`INSERT INTO referees (user_id) VALUES (?)`, userID)
 	if err != nil {
 		t.Fatalf("failed to create test referee: %v", err)
 	}
 	id, _ := res.LastInsertId()
+	
+	// Need to insert a mock license name if it doesn't exist (or just assume ID 1 is FIBA since init.sql does it)
+	db.exec("INSERT IGNORE INTO licenses_names (id, license_name) VALUES (1, 'FIBA')")
+	_, err = db.exec(`INSERT INTO licenses (referee_id, license_name_id, license_number, issued_at, expire_at) VALUES (?, 1, ?, NOW(), DATE_ADD(NOW(), INTERVAL 1 YEAR))`, id, fmt.Sprintf("FIBA-TEST-%d", time.Now().UnixNano()))
+	if err != nil {
+		fmt.Printf("FAILED TO INSERT LICENSE: %v\n", err)
+	}
 
 	return int(id), func() {
+		db.exec(`DELETE FROM licenses WHERE referee_id = ?`, id)
 		db.exec(`DELETE FROM referees WHERE id = ?`, id)
-		cleanupAddress()
 		cleanupUser()
 	}
 }

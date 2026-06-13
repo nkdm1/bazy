@@ -149,11 +149,11 @@ func TestInsertLicense(t *testing.T) {
 func TestPhoneChangeToken(t *testing.T) {
 	db := testDB(t)
 
-	refereeID, cleanupReferee := createTestReferee(t, db)
-	defer cleanupReferee()
+	userID, cleanupUser := createTestUser(t, db)
+	defer cleanupUser()
 
 	t.Run("creates and consumes phone change token successfully", func(t *testing.T) {
-		tokenHex, err := db.CreatePhoneChangeToken(refereeID, "+48111222333")
+		tokenHex, err := db.CreatePhoneChangeToken(userID, "+48111222333")
 		if err != nil {
 			t.Fatalf("expected no error creating phone token, got %v", err)
 		}
@@ -167,9 +167,9 @@ func TestPhoneChangeToken(t *testing.T) {
 			t.Fatalf("expected no error consuming phone token, got %v", err)
 		}
 
-		// Verify referee table has updated phone
+		// Verify users table has updated phone
 		var updatedPhone string
-		row, cancel := db.queryRow(`SELECT phone FROM referees WHERE id = ?`, refereeID)
+		row, cancel := db.queryRow(`SELECT phone FROM users WHERE id = ?`, userID)
 		row.Scan(&updatedPhone)
 		cancel()
 

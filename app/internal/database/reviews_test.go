@@ -19,6 +19,11 @@ func TestRateRefereePerformance(t *testing.T) {
 	userID, cleanupUser := createTestUser(t, db)
 	defer cleanupUser()
 
+	roleID, cleanupRole := createTestRoleInMatch(t, db)
+	defer cleanupRole()
+	db.exec(`INSERT INTO match_assignments (match_id, referee_id, role, assignment_status) VALUES (?, ?, ?, 'accepted')`, matchCompletedID, refereeID, roleID)
+	db.exec(`INSERT INTO match_assignments (match_id, referee_id, role, assignment_status) VALUES (?, ?, ?, 'accepted')`, matchScheduledID, refereeID, roleID)
+
 	t.Run("successfully rate referee performance", func(t *testing.T) {
 		apiErr := db.RateRefereePerformance(refereeID, matchCompletedID, 5, userID)
 		if apiErr != nil {
@@ -45,6 +50,11 @@ func TestGetRefereeReviews(t *testing.T) {
 
 	matchID2, _, _, cleanupMatch2 := createTestMatch(t, db, "completed", -1)
 	defer cleanupMatch2()
+
+	roleID, cleanupRole := createTestRoleInMatch(t, db)
+	defer cleanupRole()
+	db.exec(`INSERT INTO match_assignments (match_id, referee_id, role, assignment_status) VALUES (?, ?, ?, 'accepted')`, matchID1, refereeID, roleID)
+	db.exec(`INSERT INTO match_assignments (match_id, referee_id, role, assignment_status) VALUES (?, ?, ?, 'accepted')`, matchID2, refereeID, roleID)
 
 	db.RateRefereePerformance(refereeID, matchID1, 4, 1)
 	db.RateRefereePerformance(refereeID, matchID2, 5, 1)

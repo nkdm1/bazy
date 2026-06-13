@@ -127,21 +127,27 @@ func (db *Database) GetRefereeDirectory() ([]RefereeDirectoryEntry, types.ErrorA
 	var list []RefereeDirectoryEntry
 	for rows.Next() {
 		var entry RefereeDirectoryEntry
+		var postcode, city, street, streetNum, flatNum sql.NullString
 		if err := rows.Scan(
 			&entry.ID,
 			&entry.FirstName,
 			&entry.Surname,
 			&entry.Email,
 			&entry.Phone,
-			&entry.Postcode,
-			&entry.City,
-			&entry.Street,
-			&entry.StreetNumber,
-			&entry.FlatNumber,
+			&postcode,
+			&city,
+			&street,
+			&streetNum,
+			&flatNum,
 		); err != nil {
 			log.Printf("[ERROR]: Failed to scan referee directory entry: %v", err)
 			return nil, types.ErrInternalServer
 		}
+		entry.Postcode = postcode.String
+		entry.City = city.String
+		entry.Street = street.String
+		entry.StreetNumber = streetNum.String
+		entry.FlatNumber = flatNum.String
 		list = append(list, entry)
 	}
 

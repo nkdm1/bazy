@@ -101,7 +101,7 @@ func TestGetPendingPayouts(t *testing.T) {
 	defer cleanupPayout()
 	db.exec(`UPDATE payouts SET status = 'pending' WHERE id = ?`, payoutID)
 
-	payouts, apiErr := db.GetPendingPayouts([]int{refereeID})
+	payouts, apiErr := db.GetPendingPayouts([]int{refereeID}, false)
 	if apiErr != nil {
 		t.Fatalf("expected no error, got: %v", apiErr)
 	}
@@ -114,7 +114,7 @@ func TestGetPendingPayouts(t *testing.T) {
 	}
 
 	// Empty list
-	emptyPayouts, err := db.GetPendingPayouts([]int{})
+	emptyPayouts, err := db.GetPendingPayouts([]int{}, false)
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -138,7 +138,7 @@ func TestMarkPayoutsSent(t *testing.T) {
 	defer cleanupPayout()
 	db.exec(`UPDATE payouts SET status = 'pending' WHERE id = ?`, payoutID)
 
-	err := db.MarkPayoutsSent([]int{refereeID})
+	_, err := db.MarkPayoutsSent([]int{refereeID})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}
@@ -152,7 +152,7 @@ func TestMarkPayoutsSent(t *testing.T) {
 	}
 
 	// Empty list
-	err = db.MarkPayoutsSent([]int{})
+	_, err = db.MarkPayoutsSent([]int{})
 	if err != nil {
 		t.Fatalf("expected no error, got %v", err)
 	}

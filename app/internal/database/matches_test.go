@@ -206,7 +206,7 @@ func TestGetCompletedMatches(t *testing.T) {
 func TestGetMatchDetails(t *testing.T) {
 	db := testDB(t)
 
-	matchID, _, _, cleanupMatch := createTestMatch(t, db, "scheduled", 2)
+	matchID, _, _, cleanupMatch := createTestMatch(t, db, "scheduled", -1)
 	defer cleanupMatch()
 
 	refereeID, cleanupReferee := createTestReferee(t, db)
@@ -580,7 +580,7 @@ func TestSubmitMatchScore(t *testing.T) {
 	db := testDB(t)
 
 	// Create match
-	matchID, _, _, cleanupMatch := createTestMatch(t, db, "scheduled", 2)
+	matchID, _, _, cleanupMatch := createTestMatch(t, db, "scheduled", -1)
 	defer cleanupMatch()
 
 	// Ensure crew_chief role exists
@@ -608,6 +608,17 @@ func TestSubmitMatchScore(t *testing.T) {
 		t.Errorf("expected ErrForbidden, got: %v", errForbidden)
 	}
 
+	
+	var mEnd string
+	r1, c1 := db.queryRow("SELECT match_end FROM matches WHERE id = ?", matchID)
+	r1.Scan(&mEnd)
+	c1()
+	var asRole int
+	var asStatus string
+	r2, c2 := db.queryRow("SELECT role, assignment_status FROM match_assignments WHERE match_id = ? AND referee_id = ?", matchID, refereeID)
+	r2.Scan(&asRole, &asStatus)
+	c2()
+	t.Logf("DEBUG DB BEFORE SUBMIT: matchEnd=%s, role=%d(expected=%d), status=%s\n", mEnd, asRole, roleID, asStatus)
 	err = db.SubmitMatchScore(matchID, refereeID, 80, 70)
 	if err != nil {
 		t.Fatalf("expected no error, got: %v", err)
