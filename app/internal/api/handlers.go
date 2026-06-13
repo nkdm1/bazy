@@ -451,18 +451,6 @@ func (a *Api) updateWages(w http.ResponseWriter, r *http.Request) {
 // =========================================================================
 
 func (a *Api) setRefereeProfile(w http.ResponseWriter, r *http.Request) {
-	userId := r.Context().Value(UserIdKey).(int)
-
-	role, err := a.Database.GetUserRole(userId)
-	if err != nil {
-		fail(w, err)
-		return
-	}
-	if role != "admin" {
-		fail(w, types.ErrForbidden)
-		return
-	}
-
 	payload := new(struct {
 		Email        *string `json:"email"`
 		Phone        *string `json:"phone"`

@@ -37,12 +37,12 @@ func (a *Api) Mount() http.Handler {
 			r.Post("/availability", a.addAvailability)
 			r.Delete("/availability", a.removeAvailability)
 			r.Post("/rate", a.rateRefereePerformance)
-			r.Post("/referee", a.setRefereeProfile)
 		})
 		r.Route("/admin", func(r chi.Router) {
 			r.Use(a.authorize)
 			r.Use(a.adminOnly)
 			r.Post("/wages", a.updateWages)
+			r.Post("/referee", a.setRefereeProfile)
 		})
 		r.Route("/register", func(r chi.Router) {
 			r.Post("/", a.register)
