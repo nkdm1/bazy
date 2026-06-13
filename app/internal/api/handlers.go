@@ -113,6 +113,43 @@ func (a *Api) status(w http.ResponseWriter, r *http.Request) {
 	ok(w, http.StatusOK, "ok", nil)
 }
 
+// logout invalidates the current session by deleting the auth token from the database
+// and expiring the session_id cookie on the client side.
+func (a *Api) logout(w http.ResponseWriter, r *http.Request) {
+	cookie, err := r.Cookie("session_id")
+	if err != nil {
+		fail(w, types.ErrUnauthorized)
+		return
+	}
+
+	plainTokenBytes, err := hex.DecodeString(cookie.Value)
+	if err != nil {
+		fail(w, types.ErrUnauthorized)
+		return
+	}
+
+	tokenHashBytes := sha256.Sum256(plainTokenBytes)
+	tokenHash := hex.EncodeToString(tokenHashBytes[:])
+
+	if dbErr := a.Database.DeleteAuthToken(tokenHash); dbErr != nil {
+		fail(w, dbErr)
+		return
+	}
+
+	// expire the cookie on the client side
+	http.SetCookie(w, &http.Cookie{
+		Name:     "session_id",
+		Value:    "",
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   -1,
+	})
+
+	ok(w, http.StatusOK, "logged out", nil)
+}
+
 func (a *Api) requestNewPassword(w http.ResponseWriter, r *http.Request) {
 	userId := r.Context().Value(UserIdKey).(int)
 

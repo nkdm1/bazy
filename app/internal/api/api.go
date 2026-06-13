@@ -30,6 +30,7 @@ func (a *Api) Mount() http.Handler {
 		})
 		r.Route("/user", func(r chi.Router) {
 			r.Use(a.authorize)
+			r.Post("/logout", a.logout)
 			r.Get("/changePassword", a.requestNewPassword)
 			r.Post("/changePassword/confirm", a.updatePassword)
 			r.Post("/availability", a.addAvailability)

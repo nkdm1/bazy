@@ -262,3 +262,27 @@ func (db *Database) CreateAuthToken(userId int, tokenHash string) types.ErrorApi
 
 	return nil
 }
+
+// DeleteAuthToken removes the auth token matching the given hash from auth_tokens,
+// effectively invalidating the session (logout).
+func (db *Database) DeleteAuthToken(tokenHash string) types.ErrorApi {
+	result, err := db.exec(`
+		DELETE FROM auth_tokens
+		WHERE token_hash = ?;
+	`, tokenHash)
+	if err != nil {
+		log.Printf("[ERROR] Database failure deleting auth token: %v", err)
+		return types.ErrInternalServer
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		log.Printf("[ERROR] Could not retrieve rows affected for DeleteAuthToken: %v", err)
+		return types.ErrInternalServer
+	}
+	if rowsAffected == 0 {
+		return types.ErrNotFound
+	}
+
+	return nil
+}
