@@ -932,3 +932,22 @@ func (a *Api) assignReferee(w http.ResponseWriter, r *http.Request) {
 	}
 	ok(w, http.StatusOK, "referee assigned", nil)
 }
+
+type PayloadRevokeAssignment struct {
+	MatchID   *int `json:"match_id"`
+	RefereeID *int `json:"referee_id"`
+}
+
+func (a *Api) revokeAssignment(w http.ResponseWriter, r *http.Request) {
+	var payload PayloadRevokeAssignment
+	if err := loadPayload(&payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	if err := a.Database.RevokeAssignment(*payload.MatchID, *payload.RefereeID); err != nil {
+		fail(w, err)
+		return
+	}
+	ok(w, http.StatusOK, "assignment revoked", nil)
+}

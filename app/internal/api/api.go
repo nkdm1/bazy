@@ -60,6 +60,7 @@ func (a *Api) Mount() http.Handler {
 			r.Post("/match/cancel", a.cancelMatch)
 			r.Post("/match/reschedule", a.rescheduleMatch)
 			r.Post("/match/assign", a.assignReferee)
+			r.Post("/match/assignment/revoke", a.revokeAssignment)
 			r.Get("/referees", a.getRefereeDirectory)
 			r.Get("/referees/available", a.searchAvailableReferees)
 		})

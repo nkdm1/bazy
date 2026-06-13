@@ -211,6 +211,14 @@
       "notes": "GET /referee/assignments/pending — lists pending assignments for the authenticated referee"
     },
 
+    "revoke_assignment": {
+      "status": "done",
+      "role": "admin",
+      "depends_on": ["assign_referee"],
+      "priority_layer": 5,
+      "notes": "POST /admin/match/assignment/revoke — deletes or sets status = 'cancelled' for an assignment"
+    },
+
     "respond_to_assignment": {
       "status": "pending",
       "role": "referee",

@@ -508,3 +508,16 @@ func (db *Database) AssignReferee(matchID, refereeID int, role string) types.Err
 	}
 	return nil
 }
+
+func (db *Database) RevokeAssignment(matchID, refereeID int) types.ErrorApi {
+	res, err := db.exec(`UPDATE match_assignments SET assignment_status = 'cancelled' WHERE match_id = ? AND referee_id = ?`, matchID, refereeID)
+	if err != nil {
+		log.Printf("[ERROR]: DB error revoking assignment: %v", err)
+		return types.ErrInternalServer
+	}
+	affected, _ := res.RowsAffected()
+	if affected == 0 {
+		return types.ErrNotFound
+	}
+	return nil
+}
