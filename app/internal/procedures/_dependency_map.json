@@ -68,11 +68,11 @@
     },
 
     "set_phone": {
-      "status": "pending",
+      "status": "done",
       "role": "referee",
       "depends_on": ["set_user_as_referee"],
       "priority_layer": 3,
-      "notes": "POST /user/setPhone + POST /user/setPhone/confirm — follows same token flow as set_email"
+      "notes": "POST /referee/setPhone + POST /referee/setPhone/confirm — follows same token flow as set_email"
     },
 
     "availability": {
@@ -92,7 +92,7 @@
     },
 
     "get_my_profile": {
-      "status": "pending",
+      "status": "done",
       "role": "referee",
       "depends_on": ["set_user_as_referee"],
       "priority_layer": 3,
@@ -100,7 +100,7 @@
     },
 
     "submit_license_request": {
-      "status": "pending",
+      "status": "done",
       "role": "referee",
       "depends_on": ["set_user_as_referee"],
       "priority_layer": 3,
@@ -124,7 +124,7 @@
     },
 
     "create_venue": {
-      "status": "pending",
+      "status": "done",
       "role": "admin",
       "depends_on": ["login"],
       "priority_layer": 2,
@@ -132,7 +132,7 @@
     },
 
     "create_match": {
-      "status": "pending",
+      "status": "done",
       "role": "admin",
       "depends_on": ["create_team", "create_venue"],
       "priority_layer": 3,
@@ -188,7 +188,7 @@
     },
 
     "get_referee_directory": {
-      "status": "pending",
+      "status": "done",
       "role": "admin",
       "depends_on": ["set_user_as_referee"],
       "priority_layer": 3,
