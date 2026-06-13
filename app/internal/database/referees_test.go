@@ -3,6 +3,7 @@ package database
 import (
 	"errors"
 	"testing"
+	"time"
 
 	"github.com/nkdm1/bazy/internal/types"
 )
@@ -105,5 +106,43 @@ func TestGetRefereeProfile(t *testing.T) {
 		}
 	})
 }
+
+func TestInsertLicense(t *testing.T) {
+	db := testDB(t)
+
+	refereeID, cleanupReferee := createTestReferee(t, db)
+	defer cleanupReferee()
+
+	t.Run("successfully inserts a verified license", func(t *testing.T) {
+		// Verify license names table has umpire or some seeded license
+		var lnID int
+		row, cancel := db.queryRow(`SELECT id FROM licenses_names LIMIT 1`)
+		if err := row.Scan(&lnID); err != nil {
+			cancel()
+			// Insert one if not present
+			res, err := db.exec(`INSERT INTO licenses_names (license_name) VALUES ('Referee Class C')`)
+			if err != nil {
+				t.Fatalf("failed to seed license name: %v", err)
+			}
+			lnIDVal, _ := res.LastInsertId()
+			lnID = int(lnIDVal)
+			defer db.exec(`DELETE FROM licenses_names WHERE id = ?`, lnID)
+		} else {
+			cancel()
+		}
+
+		issuedAt := time.Now()
+		expireAt := issuedAt.AddDate(1, 0, 0)
+		licenseNum := "LIC-987654"
+
+		err := db.InsertLicense(refereeID, lnID, licenseNum, issuedAt, expireAt)
+		if err != nil {
+			t.Fatalf("expected no error, got %v", err)
+		}
+
+		defer db.exec(`DELETE FROM licenses WHERE license_number = ?`, licenseNum)
+	})
+}
+
 
 

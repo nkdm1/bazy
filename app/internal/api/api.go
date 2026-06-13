@@ -42,6 +42,7 @@ func (a *Api) Mount() http.Handler {
 			r.Post("/availability", a.addAvailability)
 			r.Delete("/availability", a.removeAvailability)
 			r.Get("/profile", a.getRefereeProfile)
+			r.Post("/license", a.submitLicenseRequest)
 		})
 		r.Route("/admin", func(r chi.Router) {
 			r.Use(a.authorize)

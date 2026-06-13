@@ -244,3 +244,39 @@ func (db *Database) GetRefereeProfile(userID int) (*RefereeProfile, types.ErrorA
 
 	return &profile, nil
 }
+
+// GetLicenseNameID looks up the ID of a license name, or returns ErrNotFound if it doesn't exist.
+func (db *Database) GetLicenseNameID(licenseName string) (int, types.ErrorApi) {
+	row, cancel := db.queryRow(`
+		SELECT id FROM licenses_names WHERE license_name = ?;
+	`, licenseName)
+	defer cancel()
+
+	var id int
+	if err := row.Scan(&id); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return -1, types.ErrNotFound
+		}
+		if errors.Is(err, context.DeadlineExceeded) {
+			log.Printf("[ERROR]: Database timeout fetching license name %q: %v", licenseName, err)
+			return -1, types.ErrTimeout
+		}
+		log.Printf("[ERROR]: Database failure fetching license name %q: %v", licenseName, err)
+		return -1, types.ErrInternalServer
+	}
+	return id, nil
+}
+
+// InsertLicense adds a verified license record into the licenses table.
+func (db *Database) InsertLicense(refereeID, licenseNameID int, licenseNumber string, issuedAt, expireAt time.Time) types.ErrorApi {
+	_, err := db.exec(`
+		INSERT INTO licenses (referee_id, license_number, license_name_id, issued_at, expire_at)
+		VALUES (?, ?, ?, ?, ?);
+	`, refereeID, licenseNumber, licenseNameID, issuedAt, expireAt)
+	if err != nil {
+		log.Printf("[ERROR]: Database failure inserting license: %v", err)
+		return types.ErrInternalServer
+	}
+	return nil
+}
+

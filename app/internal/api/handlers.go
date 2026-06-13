@@ -613,6 +613,49 @@ func (a *Api) getRefereeProfile(w http.ResponseWriter, r *http.Request) {
 	ok(w, http.StatusOK, "referee profile fetched successfully", profile)
 }
 
+// submitLicenseRequest processes a mock license verification and updates database.
+func (a *Api) submitLicenseRequest(w http.ResponseWriter, r *http.Request) {
+	payload := new(struct {
+		LicenseNumber *string `json:"license_number"`
+		LicenseName   *string `json:"license_name"`
+		Accept        *bool   `json:"accept"`
+	})
+	if err := loadPayload(payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	if !*payload.Accept {
+		fail(w, types.ErrInvalidPayload)
+		return
+	}
+
+	userID := r.Context().Value(UserIdKey).(int)
+	refereeID, err := a.Database.GetRefereeIDByUserID(userID)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+
+	licenseNameID, err := a.Database.GetLicenseNameID(*payload.LicenseName)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+
+	issuedAt := time.Now()
+	expireAt := issuedAt.AddDate(1, 0, 0) // Valid for 1 year by default
+
+	err = a.Database.InsertLicense(refereeID, licenseNameID, *payload.LicenseNumber, issuedAt, expireAt)
+	if err != nil {
+		fail(w, err)
+		return
+	}
+
+	ok(w, http.StatusCreated, "license verified and added successfully", nil)
+}
+
+
 
 
 
