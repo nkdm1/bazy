@@ -313,3 +313,35 @@ func TestRescheduleMatch(t *testing.T) {
 		t.Errorf("expected ErrNotFound, got: %v", errNotFound)
 	}
 }
+
+func TestAssignReferee(t *testing.T) {
+	db := testDB(t)
+
+	matchID, _, _, cleanupMatch := createTestMatch(t, db, "scheduled", 2)
+	defer cleanupMatch()
+
+	refereeID, cleanupReferee := createTestReferee(t, db)
+	defer cleanupReferee()
+
+	_, cleanupRole := createTestRoleInMatch(t, db)
+	defer cleanupRole()
+
+	err := db.AssignReferee(matchID, refereeID, "umpire")
+	if err != nil {
+		t.Fatalf("expected no error, got: %v", err)
+	}
+
+	var status string
+	row, cancel := db.queryRow(`SELECT assignment_status FROM match_assignments WHERE match_id = ? AND referee_id = ?`, matchID, refereeID)
+	row.Scan(&status)
+	cancel()
+
+	if status != "pending" {
+		t.Errorf("expected status 'pending', got %s", status)
+	}
+
+	errConflict := db.AssignReferee(matchID, refereeID, "umpire")
+	if !errors.Is(errConflict, types.ErrConflict) {
+		t.Errorf("expected ErrConflict, got: %v", errConflict)
+	}
+}

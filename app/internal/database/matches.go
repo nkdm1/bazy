@@ -476,3 +476,35 @@ func (db *Database) RescheduleMatch(matchID int, start, end time.Time) types.Err
 	}
 	return nil
 }
+
+func (db *Database) AssignReferee(matchID, refereeID int, role string) types.ErrorApi {
+	var roleID int
+	row, cancel := db.queryRow(`SELECT id FROM role_in_match WHERE match_role = ?`, role)
+	if err := row.Scan(&roleID); err != nil {
+		cancel()
+		if errors.Is(err, sql.ErrNoRows) {
+			return types.ErrNotFound
+		}
+		log.Printf("[ERROR]: DB error getting role_in_match: %v", err)
+		return types.ErrInternalServer
+	}
+	cancel()
+
+	var existing int
+	checkRow, checkCancel := db.queryRow(`SELECT 1 FROM match_assignments WHERE match_id = ? AND referee_id = ?`, matchID, refereeID)
+	err := checkRow.Scan(&existing)
+	checkCancel()
+	if err == nil {
+		return types.ErrConflict
+	} else if !errors.Is(err, sql.ErrNoRows) {
+		log.Printf("[ERROR]: DB error checking assignment: %v", err)
+		return types.ErrInternalServer
+	}
+
+	_, err = db.exec(`INSERT INTO match_assignments (match_id, referee_id, role, assignment_status) VALUES (?, ?, ?, 'pending')`, matchID, refereeID, roleID)
+	if err != nil {
+		log.Printf("[ERROR]: DB error inserting match_assignment: %v", err)
+		return types.ErrInternalServer
+	}
+	return nil
+}

@@ -912,3 +912,23 @@ func (a *Api) searchAvailableReferees(w http.ResponseWriter, r *http.Request) {
 
 	ok(w, http.StatusOK, "available referees", refs)
 }
+
+type PayloadAssignReferee struct {
+	MatchID   *int    `json:"match_id"`
+	RefereeID *int    `json:"referee_id"`
+	Role      *string `json:"role"`
+}
+
+func (a *Api) assignReferee(w http.ResponseWriter, r *http.Request) {
+	var payload PayloadAssignReferee
+	if err := loadPayload(&payload, r.Body); err != nil {
+		fail(w, err)
+		return
+	}
+
+	if err := a.Database.AssignReferee(*payload.MatchID, *payload.RefereeID, *payload.Role); err != nil {
+		fail(w, err)
+		return
+	}
+	ok(w, http.StatusOK, "referee assigned", nil)
+}

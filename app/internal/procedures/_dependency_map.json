@@ -196,11 +196,11 @@
     },
 
     "assign_referee": {
-      "status": "pending",
+      "status": "done",
       "role": "admin",
-      "depends_on": ["create_match", "set_user_as_referee"],
-      "priority_layer": 4,
-      "notes": "POST /admin/assignment — creates a 'pending' match_assignment record"
+      "depends_on": ["create_match", "search_available_referees"],
+      "priority_layer": 5,
+      "notes": "POST /admin/match/assign — creates match_assignments record (status = 'assigned')"
     },
 
     "check_pending_assignments": {
