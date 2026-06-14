@@ -22,8 +22,8 @@ const baseURL = "http://localhost:8080"
 var (
 	adminClient   *http.Client
 	refereeClient *http.Client
-	ref2Client *http.Client
-	ref3Client *http.Client
+	ref2Client    *http.Client
+	ref3Client    *http.Client
 	viewerClient  *http.Client
 
 	// Global state for extracting IDs
@@ -67,15 +67,15 @@ var (
 )
 
 type Step struct {
-	Scene   string
-	Desc    string
-	Caller  string
-	Method  string
-	Path    string
-	Payload func() interface{}
-	RawBody func() string
+	Scene     string
+	Desc      string
+	Caller    string
+	Method    string
+	Path      string
+	Payload   func() interface{}
+	RawBody   func() string
 	MultiPath []string
-	Do      func() string // Does the request and extracts state if needed
+	Do        func() string // Does the request and extracts state if needed
 }
 
 type model struct {
@@ -151,11 +151,21 @@ func (m model) View() string {
 
 	step := m.steps[m.stepIdx]
 	sceneColor := lipgloss.Color("#874BFD")
-	if strings.HasPrefix(step.Scene, "SCENE 1") { sceneColor = lipgloss.Color("#7aa2f7") }
-	if strings.HasPrefix(step.Scene, "SCENE 2") { sceneColor = lipgloss.Color("#bb9af7") }
-	if strings.HasPrefix(step.Scene, "SCENE 3") { sceneColor = lipgloss.Color("#7dcfff") }
-	if strings.HasPrefix(step.Scene, "SCENE 4") { sceneColor = lipgloss.Color("#9ece6a") }
-	if strings.HasPrefix(step.Scene, "SCENE 5") { sceneColor = lipgloss.Color("#e0af68") }
+	if strings.HasPrefix(step.Scene, "SCENE 1") {
+		sceneColor = lipgloss.Color("#7aa2f7")
+	}
+	if strings.HasPrefix(step.Scene, "SCENE 2") {
+		sceneColor = lipgloss.Color("#bb9af7")
+	}
+	if strings.HasPrefix(step.Scene, "SCENE 3") {
+		sceneColor = lipgloss.Color("#7dcfff")
+	}
+	if strings.HasPrefix(step.Scene, "SCENE 4") {
+		sceneColor = lipgloss.Color("#9ece6a")
+	}
+	if strings.HasPrefix(step.Scene, "SCENE 5") {
+		sceneColor = lipgloss.Color("#e0af68")
+	}
 
 	header := titleStyle.Background(sceneColor).Width(m.width).Render("BAZY API DEMO")
 	sceneTitle := lipgloss.NewStyle().Align(lipgloss.Center).Width(m.width).Bold(true).Foreground(lipgloss.Color("#E88388")).Render(fmt.Sprintf("--- %s: %s ---", step.Scene, step.Desc))
@@ -312,12 +322,14 @@ func getSteps() []Step {
 			},
 		},
 		{
-			Scene:   "SCENE 1: ADMIN DATA SETUP",
-			Desc:    "Admin creates a new Venue",
-			Caller:  "Admin",
-			Method:  "POST",
-			Path:    "/admin/venues",
-			Payload: func() interface{} { return map[string]interface{}{"gym_name": "Demo Arena", "postcode": "00-001", "city": "Demo City", "street": "Demo St", "street_number": "1"} },
+			Scene:  "SCENE 1: ADMIN DATA SETUP",
+			Desc:   "Admin creates a new Venue",
+			Caller: "Admin",
+			Method: "POST",
+			Path:   "/admin/venues",
+			Payload: func() interface{} {
+				return map[string]interface{}{"gym_name": "Demo Arena", "postcode": "00-001", "city": "Demo City", "street": "Demo St", "street_number": "1"}
+			},
 			Do: func() string {
 				return doReq(adminClient, "POST", "/admin/venues", map[string]interface{}{"gym_name": "Demo Arena", "postcode": "00-001", "city": "Demo City", "street": "Demo St", "street_number": "1"})
 			},
@@ -345,23 +357,27 @@ func getSteps() []Step {
 			},
 		},
 		{
-			Scene:   "SCENE 1: ADMIN DATA SETUP",
-			Desc:    "Admin schedules a match with non-existent venue (Error Demo)",
-			Caller:  "Admin",
-			Method:  "POST",
-			Path:    "/admin/matches",
-			Payload: func() interface{} { return map[string]interface{}{"home_team_name": "Team Alpha", "away_team_name": "Team Beta", "venue_name": "Bad Venue", "match_level": "fiba", "match_start": "2026-06-15T12:00:00Z", "match_end": "2026-06-15T14:00:00Z"} },
+			Scene:  "SCENE 1: ADMIN DATA SETUP",
+			Desc:   "Admin schedules a match with non-existent venue (Error Demo)",
+			Caller: "Admin",
+			Method: "POST",
+			Path:   "/admin/matches",
+			Payload: func() interface{} {
+				return map[string]interface{}{"home_team_name": "Team Alpha", "away_team_name": "Team Beta", "venue_name": "Bad Venue", "match_level": "fiba", "match_start": "2026-06-15T12:00:00Z", "match_end": "2026-06-15T14:00:00Z"}
+			},
 			Do: func() string {
 				return doReq(adminClient, "POST", "/admin/matches", map[string]interface{}{"home_team_name": "Team Alpha", "away_team_name": "Team Beta", "venue_name": "Bad Venue", "match_level": "fiba", "match_start": "2026-06-15T12:00:00Z", "match_end": "2026-06-15T14:00:00Z"})
 			},
 		},
 		{
-			Scene:   "SCENE 1: ADMIN DATA SETUP",
-			Desc:    "Admin schedules a new match",
-			Caller:  "Admin",
-			Method:  "POST",
-			Path:    "/admin/matches",
-			Payload: func() interface{} { return map[string]interface{}{"home_team_name": "Team Alpha", "away_team_name": "Team Beta", "venue_name": "Demo Arena", "match_level": "fiba", "match_start": "2026-06-15T12:00:00Z", "match_end": "2026-06-15T14:00:00Z"} },
+			Scene:  "SCENE 1: ADMIN DATA SETUP",
+			Desc:   "Admin schedules a new match",
+			Caller: "Admin",
+			Method: "POST",
+			Path:   "/admin/matches",
+			Payload: func() interface{} {
+				return map[string]interface{}{"home_team_name": "Team Alpha", "away_team_name": "Team Beta", "venue_name": "Demo Arena", "match_level": "fiba", "match_start": "2026-06-15T12:00:00Z", "match_end": "2026-06-15T14:00:00Z"}
+			},
 			Do: func() string {
 				return doReq(adminClient, "POST", "/admin/matches", map[string]interface{}{"home_team_name": "Team Alpha", "away_team_name": "Team Beta", "venue_name": "Demo Arena", "match_level": "fiba", "match_start": "2026-06-15T12:00:00Z", "match_end": "2026-06-15T14:00:00Z"})
 			},
@@ -369,7 +385,7 @@ func getSteps() []Step {
 		{
 			Scene:  "SCENE 1: ADMIN DATA SETUP",
 			Desc:   "Admin views upcoming matches to extract Match ID",
-			Caller:  "Admin",
+			Caller: "Admin",
 			Method: "GET",
 			Path:   "/matches/upcoming",
 			Do: func() string {
@@ -379,10 +395,10 @@ func getSteps() []Step {
 			},
 		},
 		{
-			Scene:   "SCENE 1: ADMIN DATA SETUP",
-			Desc:    "Admin sets wages for the FIBA league (Multiple)",
-			Caller:  "Admin",
-			Method:  "POST",
+			Scene:     "SCENE 1: ADMIN DATA SETUP",
+			Desc:      "Admin sets wages for the FIBA league (Multiple)",
+			Caller:    "Admin",
+			Method:    "POST",
 			MultiPath: []string{"/admin/wages", "/admin/wages", "/admin/wages", "/admin/wages"},
 			RawBody: func() string {
 				return "body1:\n{\n  \"fee\": 150,\n  \"match_level\": \"fiba\",\n  \"match_role\": \"crew_chief\"\n}\nbody2:\n{\n  \"fee\": 100,\n  \"match_level\": \"fiba\",\n  \"match_role\": \"umpire\"\n}\nbody3:\n{\n  \"fee\": 200,\n  \"match_level\": \"plk\",\n  \"match_role\": \"crew_chief\"\n}\nbody4:\n{\n  \"fee\": 150,\n  \"match_level\": \"plk\",\n  \"match_role\": \"umpire\"\n}"
@@ -396,12 +412,14 @@ func getSteps() []Step {
 			},
 		},
 		{
-			Scene:   "SCENE 2: REFEREE ONBOARDING",
-			Desc:    "New user registers an account",
-			Caller:  "Normal User (john@referee.com)",
-			Method:  "POST",
-			Path:    "/register/",
-			Payload: func() interface{} { return map[string]interface{}{"name": "John", "surname": "Whistle", "email": "john@referee.com"} },
+			Scene:  "SCENE 2: REFEREE ONBOARDING",
+			Desc:   "New user registers an account",
+			Caller: "Normal User (john@referee.com)",
+			Method: "POST",
+			Path:   "/register/",
+			Payload: func() interface{} {
+				return map[string]interface{}{"name": "John", "surname": "Whistle", "email": "john@referee.com"}
+			},
 			Do: func() string {
 				res := doReq(viewerClient, "POST", "/register/", map[string]interface{}{"name": "John", "surname": "Whistle", "email": "john@referee.com"})
 				var rResp struct {
@@ -426,10 +444,10 @@ func getSteps() []Step {
 			},
 		},
 		{
-			Scene:   "SCENE 2: REFEREE ONBOARDING",
-			Desc:    "Users update their profile, verify phone, and apply to become referees (Silent bulk)",
-			Caller:  "User (john@referee.com)",
-			Method:  "POST",
+			Scene:     "SCENE 2: REFEREE ONBOARDING",
+			Desc:      "Users update their profile, verify phone, and apply to become referees (Silent bulk)",
+			Caller:    "User (john@referee.com)",
+			Method:    "POST",
 			MultiPath: []string{"/user/profile", "/user/setPhone", "/user/setPhone/confirm", "/user/applyReferee"},
 			RawBody: func() string {
 				return "body1:\n{\n  \"city\": \"Ref City\",\n  \"flat_number\": \"\",\n  \"postcode\": \"00-001\",\n  \"street\": \"Ref St\",\n  \"street_number\": \"1\"\n}\nbody2:\n{\n  \"phone\": \"123456789\"\n}\nbody3:\n{\n  \"token\": \"...\"\n}\nbody4:\n{}"
@@ -437,12 +455,20 @@ func getSteps() []Step {
 			Do: func() string {
 				// Register others silently
 				res2 := doReq(viewerClient, "POST", "/register/", map[string]interface{}{"name": "Jane", "surname": "Smith", "email": "jane@referee.com"})
-				var rResp2 struct{ Data struct{ Token string `json:"fake_email_message"` } `json:"data"` }
+				var rResp2 struct {
+					Data struct {
+						Token string `json:"fake_email_message"`
+					} `json:"data"`
+				}
 				json.Unmarshal([]byte(getRawJSON(res2)), &rResp2)
 				doReq(viewerClient, "POST", "/register/confirm", map[string]interface{}{"token": rResp2.Data.Token, "new_password": "password"})
 
 				res3 := doReq(viewerClient, "POST", "/register/", map[string]interface{}{"name": "Mark", "surname": "Doe", "email": "mark@referee.com"})
-				var rResp3 struct{ Data struct{ Token string `json:"fake_email_message"` } `json:"data"` }
+				var rResp3 struct {
+					Data struct {
+						Token string `json:"fake_email_message"`
+					} `json:"data"`
+				}
 				json.Unmarshal([]byte(getRawJSON(res3)), &rResp3)
 				doReq(viewerClient, "POST", "/register/confirm", map[string]interface{}{"token": rResp3.Data.Token, "new_password": "password"})
 
@@ -454,21 +480,33 @@ func getSteps() []Step {
 				// Update profiles, phones and apply
 				doReq(ref2Client, "POST", "/user/profile", map[string]interface{}{"postcode": "00-002", "city": "City", "street": "St", "street_number": "2", "flat_number": ""})
 				ph2 := doReq(ref2Client, "POST", "/user/setPhone", map[string]interface{}{"phone": "222222222"})
-				var pResp2 struct{ Data struct{ FakeSMSMessage string `json:"fake_sms_message"` } `json:"data"` }
+				var pResp2 struct {
+					Data struct {
+						FakeSMSMessage string `json:"fake_sms_message"`
+					} `json:"data"`
+				}
 				json.Unmarshal([]byte(getRawJSON(ph2)), &pResp2)
 				doReq(ref2Client, "POST", "/user/setPhone/confirm", map[string]interface{}{"token": pResp2.Data.FakeSMSMessage})
 				doReq(ref2Client, "POST", "/user/applyReferee", nil)
 
 				doReq(ref3Client, "POST", "/user/profile", map[string]interface{}{"postcode": "00-003", "city": "City", "street": "St", "street_number": "3", "flat_number": ""})
 				ph3 := doReq(ref3Client, "POST", "/user/setPhone", map[string]interface{}{"phone": "333333333"})
-				var pResp3 struct{ Data struct{ FakeSMSMessage string `json:"fake_sms_message"` } `json:"data"` }
+				var pResp3 struct {
+					Data struct {
+						FakeSMSMessage string `json:"fake_sms_message"`
+					} `json:"data"`
+				}
 				json.Unmarshal([]byte(getRawJSON(ph3)), &pResp3)
 				doReq(ref3Client, "POST", "/user/setPhone/confirm", map[string]interface{}{"token": pResp3.Data.FakeSMSMessage})
 				doReq(ref3Client, "POST", "/user/applyReferee", nil)
-				
+
 				r1 := doReq(viewerClient, "POST", "/user/profile", map[string]interface{}{"postcode": "00-001", "city": "Ref City", "street": "Ref St", "street_number": "1", "flat_number": ""})
 				r2 := doReq(viewerClient, "POST", "/user/setPhone", map[string]interface{}{"phone": "123456789"})
-				var pResp1 struct{ Data struct{ FakeSMSMessage string `json:"fake_sms_message"` } `json:"data"` }
+				var pResp1 struct {
+					Data struct {
+						FakeSMSMessage string `json:"fake_sms_message"`
+					} `json:"data"`
+				}
 				json.Unmarshal([]byte(getRawJSON(r2)), &pResp1)
 				r3 := doReq(viewerClient, "POST", "/user/setPhone/confirm", map[string]interface{}{"token": pResp1.Data.FakeSMSMessage})
 				r4 := doReq(viewerClient, "POST", "/user/applyReferee", nil)
@@ -476,11 +514,11 @@ func getSteps() []Step {
 			},
 		},
 		{
-			Scene:  "SCENE 2: REFEREE ONBOARDING",
-			Desc:   "Admin fetches Referee Directory to get Referee ID",
+			Scene:   "SCENE 2: REFEREE ONBOARDING",
+			Desc:    "Admin fetches Referee Directory to get Referee ID",
 			Caller:  "Admin",
-			Method: "GET",
-			Path:   "/admin/referee/directory",
+			Method:  "GET",
+			Path:    "/admin/referee/directory",
 			Payload: nil,
 			Do: func() string {
 				res := doReq(adminClient, "GET", "/admin/referee/directory", nil)
@@ -504,12 +542,14 @@ func getSteps() []Step {
 			},
 		},
 		{
-			Scene:   "SCENE 2: REFEREE ONBOARDING",
-			Desc:    "Referee submits external license validation request (Others run silently)",
-			Caller:  "Referee (john@referee.com)",
-			Method:  "POST",
-			Path:    "/referee/license",
-			Payload: func() interface{} { return map[string]interface{}{"license_name": "fiba", "license_number": "FIBA-JOHN-001", "accept": true} },
+			Scene:  "SCENE 2: REFEREE ONBOARDING",
+			Desc:   "Referee submits external license validation request (Others run silently)",
+			Caller: "Referee (john@referee.com)",
+			Method: "POST",
+			Path:   "/referee/license",
+			Payload: func() interface{} {
+				return map[string]interface{}{"license_name": "fiba", "license_number": "FIBA-JOHN-001", "accept": true}
+			},
 			Do: func() string {
 				doReq(ref2Client, "POST", "/referee/license", map[string]interface{}{"license_name": "fiba", "license_number": "FIBA-JANE-002", "accept": true})
 				doReq(ref3Client, "POST", "/referee/license", map[string]interface{}{"license_name": "fiba", "license_number": "FIBA-MARK-003", "accept": true})
@@ -528,10 +568,10 @@ func getSteps() []Step {
 			},
 		},
 		{
-			Scene:   "SCENE 3: MATCH ASSIGNMENT",
-			Desc:    "Admin assigns Referees to the Match",
-			Caller:  "Admin",
-			Method:  "POST",
+			Scene:     "SCENE 3: MATCH ASSIGNMENT",
+			Desc:      "Admin assigns Referees to the Match",
+			Caller:    "Admin",
+			Method:    "POST",
 			MultiPath: []string{"/admin/match/assign", "/admin/match/assign", "/admin/match/assign"},
 			RawBody: func() string {
 				return fmt.Sprintf("body1:\n{\n  \"match_id\": %d,\n  \"referee_id\": %d,\n  \"role\": \"crew_chief\"\n}\nbody2:\n{\n  \"match_id\": %d,\n  \"referee_id\": %d,\n  \"role\": \"umpire\"\n}\nbody3:\n{\n  \"match_id\": %d,\n  \"referee_id\": %d,\n  \"role\": \"umpire\"\n}", matchID, refereeID, matchID, ref2ID, matchID, ref3ID)
@@ -544,11 +584,11 @@ func getSteps() []Step {
 			},
 		},
 		{
-			Scene:  "SCENE 3: MATCH ASSIGNMENT",
-			Desc:   "Referee views pending assignments",
+			Scene:   "SCENE 3: MATCH ASSIGNMENT",
+			Desc:    "Referee views pending assignments",
 			Caller:  "Referee (john@referee.com)",
-			Method: "GET",
-			Path:   "/referee/assignments/pending",
+			Method:  "GET",
+			Path:    "/referee/assignments/pending",
 			Payload: nil,
 			Do: func() string {
 				res := doReq(refereeClient, "GET", "/referee/assignments/pending", nil)
@@ -569,12 +609,14 @@ func getSteps() []Step {
 			},
 		},
 		{
-			Scene:   "SCENE 3: MATCH ASSIGNMENT",
-			Desc:    "Referee submits final score for the match",
-			Caller:  "Referee (john@referee.com)",
-			Method:  "POST",
-			Path:    "/referee/match/score",
-			Payload: func() interface{} { return map[string]interface{}{"match_id": matchID, "home_team_points": 2, "away_team_points": 1} },
+			Scene:  "SCENE 3: MATCH ASSIGNMENT",
+			Desc:   "Referee submits final score for the match",
+			Caller: "Referee (john@referee.com)",
+			Method: "POST",
+			Path:   "/referee/match/score",
+			Payload: func() interface{} {
+				return map[string]interface{}{"match_id": matchID, "home_team_points": 2, "away_team_points": 1}
+			},
 			Do: func() string {
 				// Fast forward match end time to past so submission is valid
 				db, _ := sql.Open("mysql", "root:root@tcp(ubuntu:3306)/db?parseTime=true")
@@ -605,7 +647,7 @@ func getSteps() []Step {
 		{
 			Scene:  "SCENE 4: NORMAL USER ACTIVITY",
 			Desc:   "Normal user queries completed matches",
-			Caller:  "Normal User (bob@fan.com)",
+			Caller: "Normal User (bob@fan.com)",
 			Method: "GET",
 			Path:   "/matches/completed",
 			Do: func() string {
@@ -613,12 +655,14 @@ func getSteps() []Step {
 			},
 		},
 		{
-			Scene:   "SCENE 4: NORMAL USER ACTIVITY",
-			Desc:    "Normal user submits a 5-star review for the referee",
-			Caller:  "Normal User (bob@fan.com)",
-			Method:  "POST",
-			Path:    "/user/rate",
-			Payload: func() interface{} { return map[string]interface{}{"referee_id": refereeID, "match_id": matchID, "rating": 5} },
+			Scene:  "SCENE 4: NORMAL USER ACTIVITY",
+			Desc:   "Normal user submits a 5-star review for the referee",
+			Caller: "Normal User (bob@fan.com)",
+			Method: "POST",
+			Path:   "/user/rate",
+			Payload: func() interface{} {
+				return map[string]interface{}{"referee_id": refereeID, "match_id": matchID, "rating": 5}
+			},
 			Do: func() string {
 				return doReq(viewerClient, "POST", "/user/rate", map[string]interface{}{"referee_id": refereeID, "match_id": matchID, "rating": 5})
 			},
@@ -646,12 +690,24 @@ func getSteps() []Step {
 				var parsed map[string]interface{}
 				json.Unmarshal([]byte(getRawJSON(res)), &parsed)
 				if data, ok := parsed["data"].([]interface{}); ok && len(data) >= 3 {
-					if tx, ok := data[0].(map[string]interface{})["bank_transaction_id"].(string); ok { bankTxID = tx }
-					if tx, ok := data[1].(map[string]interface{})["bank_transaction_id"].(string); ok { bankTx2 = tx }
-					if tx, ok := data[2].(map[string]interface{})["bank_transaction_id"].(string); ok { bankTx3 = tx }
-					if pID, ok := data[0].(map[string]interface{})["payout_id"].(float64); ok { payoutID = int(pID) }
-					if pID, ok := data[1].(map[string]interface{})["payout_id"].(float64); ok { payout2ID = int(pID) }
-					if pID, ok := data[2].(map[string]interface{})["payout_id"].(float64); ok { payout3ID = int(pID) }
+					if tx, ok := data[0].(map[string]interface{})["bank_transaction_id"].(string); ok {
+						bankTxID = tx
+					}
+					if tx, ok := data[1].(map[string]interface{})["bank_transaction_id"].(string); ok {
+						bankTx2 = tx
+					}
+					if tx, ok := data[2].(map[string]interface{})["bank_transaction_id"].(string); ok {
+						bankTx3 = tx
+					}
+					if pID, ok := data[0].(map[string]interface{})["payout_id"].(float64); ok {
+						payoutID = int(pID)
+					}
+					if pID, ok := data[1].(map[string]interface{})["payout_id"].(float64); ok {
+						payout2ID = int(pID)
+					}
+					if pID, ok := data[2].(map[string]interface{})["payout_id"].(float64); ok {
+						payout3ID = int(pID)
+					}
 				}
 				return res
 			},
@@ -659,7 +715,7 @@ func getSteps() []Step {
 		{
 			Scene:  "SCENE 5: PAYOUT PROCESSING",
 			Desc:   "Referee views their payout history",
-			Caller:  "Referee (john@referee.com)",
+			Caller: "Referee (john@referee.com)",
 			Method: "GET",
 			Path:   "/referee/payouts",
 			Do: func() string {
@@ -669,17 +725,17 @@ func getSteps() []Step {
 			},
 		},
 		{
-			Scene:   "SCENE 5: PAYOUT PROCESSING",
-			Desc:    "Admin confirms bank transfers (2 paid, 1 failed)",
-			Caller:  "Admin",
-			Method:  "POST",
-			Path:    "/admin/payouts/confirm",
-			Payload: func() interface{} { 
+			Scene:  "SCENE 5: PAYOUT PROCESSING",
+			Desc:   "Admin confirms bank transfers (2 paid, 1 failed)",
+			Caller: "Admin",
+			Method: "POST",
+			Path:   "/admin/payouts/confirm",
+			Payload: func() interface{} {
 				return map[string]interface{}{"confirmations": []map[string]interface{}{
 					{"payout_id": payoutID, "bank_transaction_id": bankTxID, "status": "paid"},
 					{"payout_id": payout2ID, "bank_transaction_id": bankTx2, "status": "paid"},
 					{"payout_id": payout3ID, "bank_transaction_id": bankTx3, "status": "failed"},
-				}} 
+				}}
 			},
 			Do: func() string {
 				return doReq(adminClient, "POST", "/admin/payouts/confirm", map[string]interface{}{
@@ -694,7 +750,7 @@ func getSteps() []Step {
 		{
 			Scene:  "SCENE 5: PAYOUT PROCESSING",
 			Desc:   "Admin reviews the monthly payout report",
-			Caller:  "Admin",
+			Caller: "Admin",
 			Method: "GET",
 			Path:   "/admin/payouts/report?year=2026&month=6",
 			Do: func() string {
@@ -835,7 +891,7 @@ func renderEndpointsTree(width int) string {
     └── POST /confirm`
 
 	header := titleStyle.Background(lipgloss.Color("#874BFD")).Width(width).Render("BAZY API DEMO - ENDPOINTS TREE")
-	
+
 	treeBox := lipgloss.NewStyle().
 		Border(lipgloss.RoundedBorder()).
 		BorderForeground(lipgloss.Color("#874BFD")).
