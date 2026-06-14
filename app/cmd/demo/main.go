@@ -146,9 +146,7 @@ func (m model) View() string {
 	}
 
 	if m.stepIdx >= len(m.steps) {
-		header := titleStyle.Background(lipgloss.Color("#874BFD")).Width(m.width).Render("BAZY API DEMO")
-		endText := lipgloss.NewStyle().Align(lipgloss.Center).Width(m.width).MarginTop(2).Render("Demo Completed Successfully!\nPress [Enter] or [q] to exit.")
-		return lipgloss.JoinVertical(lipgloss.Left, header, endText)
+		return renderEndpointsTree(m.width)
 	}
 
 	step := m.steps[m.stepIdx]
@@ -767,4 +765,75 @@ func extractPayoutID(resJSON string) int {
 		return int(payout["id"].(float64))
 	}
 	return 0
+}
+
+func renderEndpointsTree(width int) string {
+	tree := `BAZY API ROUTES
+
+/
+├── POST /login
+├── GET  /status
+├── GET  /matches/upcoming
+├── GET  /matches/completed
+├── GET  /matches/{match_id}
+├── /forgotPassword
+│   ├── POST /
+│   └── POST /confirm
+├── /user
+│   ├── POST   /profile
+│   ├── POST   /applyReferee
+│   ├── POST   /setPhone
+│   ├── POST   /setPhone/confirm
+│   ├── POST   /logout
+│   ├── DELETE /
+│   ├── GET    /changePassword
+│   ├── POST   /changePassword/confirm
+│   └── POST   /rate
+├── /referee
+│   ├── POST   /availability
+│   ├── DELETE /availability
+│   ├── GET    /profile
+│   ├── POST   /license
+│   ├── POST   /assignment/respond
+│   ├── GET    /assignments/pending
+│   ├── POST   /assignment/cancel
+│   ├── GET    /schedule
+│   ├── POST   /match/score
+│   └── GET    /payouts
+├── /admin
+│   ├── POST /wages
+│   ├── POST /teams
+│   ├── POST /venues
+│   ├── POST /matches
+│   ├── POST /match/cancel
+│   ├── POST /match/reschedule
+│   ├── POST /match/assign
+│   ├── POST /match/assignment/revoke
+│   ├── POST /assignment/noshow
+│   ├── GET  /match/{match_id}/assignments
+│   ├── GET  /referee/directory
+│   ├── GET  /referee/reviews
+│   ├── POST /payouts/pending
+│   ├── POST /payouts/sent
+│   ├── POST /payouts/confirm
+│   ├── GET  /payouts/report
+│   └── GET  /referees/available
+└── /register
+    ├── POST /
+    └── POST /confirm`
+
+	header := titleStyle.Background(lipgloss.Color("#874BFD")).Width(width).Render("BAZY API DEMO - ENDPOINTS TREE")
+	
+	treeBox := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color("#874BFD")).
+		Padding(1, 2).
+		Align(lipgloss.Left).
+		Foreground(lipgloss.Color("#00A1FE")).
+		Render(tree)
+
+	treeCentered := lipgloss.NewStyle().Width(width).Align(lipgloss.Center).Render(treeBox)
+	endText := lipgloss.NewStyle().Align(lipgloss.Center).Width(width).MarginTop(1).Foreground(lipgloss.Color("#E88388")).Render("Demo Completed Successfully! Press [Enter] or [q] to exit.")
+
+	return lipgloss.JoinVertical(lipgloss.Left, header, "\n", treeCentered, endText)
 }

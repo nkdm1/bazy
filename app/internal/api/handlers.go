@@ -536,7 +536,7 @@ func (a *Api) createMatch(w http.ResponseWriter, r *http.Request) {
 
 	start, errStart := time.Parse(time.RFC3339, *payload.MatchStart)
 	end, errEnd := time.Parse(time.RFC3339, *payload.MatchEnd)
-	if errStart != nil || errEnd != nil {
+	if errStart != nil || errEnd != nil || !start.Before(end) {
 		fail(w, types.ErrInvalidPayload)
 		return
 	}
@@ -860,6 +860,11 @@ func (a *Api) rescheduleMatch(w http.ResponseWriter, r *http.Request) {
 	var payload PayloadRescheduleMatch
 	if err := loadPayload(&payload, r.Body); err != nil {
 		fail(w, err)
+		return
+	}
+
+	if !payload.Start.Before(*payload.End) {
+		fail(w, types.ErrInvalidPayload)
 		return
 	}
 
