@@ -513,21 +513,7 @@ func getSteps() []Step {
 				return r1 + "\n" + r2 + "\n" + r3 + "\n" + r4
 			},
 		},
-		{
-			Scene:   "SCENE 2: REFEREE ONBOARDING",
-			Desc:    "Admin fetches Referee Directory to get Referee ID",
-			Caller:  "Admin",
-			Method:  "GET",
-			Path:    "/admin/referee/directory",
-			Payload: nil,
-			Do: func() string {
-				res := doReq(adminClient, "GET", "/admin/referee/directory", nil)
-				refereeID = extractRefereeID(res, "john@referee.com")
-				ref2ID = extractRefereeID(res, "jane@referee.com")
-				ref3ID = extractRefereeID(res, "mark@referee.com")
-				return res
-			},
-		},
+
 		{
 			Scene:   "SCENE 2: REFEREE ONBOARDING",
 			Desc:    "Referee logs in",
@@ -565,6 +551,21 @@ func getSteps() []Step {
 			Payload: func() any { return map[string]any{"date": "2026-06-15"} },
 			Do: func() string {
 				return doReq(refereeClient, "POST", "/referee/availability", map[string]any{"date": "2026-06-15"})
+			},
+		},
+		{
+			Scene:   "SCENE 2: REFEREE ONBOARDING",
+			Desc:    "Admin fetches Referee Directory to get Referee ID",
+			Caller:  "Admin",
+			Method:  "GET",
+			Path:    "/admin/referee/directory",
+			Payload: nil,
+			Do: func() string {
+				res := doReq(adminClient, "GET", "/admin/referee/directory", nil)
+				refereeID = extractRefereeID(res, "john@referee.com")
+				ref2ID = extractRefereeID(res, "jane@referee.com")
+				ref3ID = extractRefereeID(res, "mark@referee.com")
+				return res
 			},
 		},
 		{
