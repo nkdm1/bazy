@@ -421,7 +421,7 @@ func getSteps() []Step {
 				return map[string]any{"name": "John", "surname": "Whistle", "email": "john@referee.com"}
 			},
 			Do: func() string {
-				res := doReq(viewerClient, "POST", "/register/", map[string]any{"name": "John", "surname": "Whistle", "email": "john@referee.com"})
+				res := doReq(refereeClient, "POST", "/register/", map[string]any{"name": "John", "surname": "Whistle", "email": "john@referee.com"})
 				var rResp struct {
 					Data struct {
 						Token string `json:"fake_email_message"`
@@ -440,7 +440,7 @@ func getSteps() []Step {
 			Path:    "/register/confirm",
 			Payload: func() any { return map[string]any{"token": regToken, "new_password": "password"} },
 			Do: func() string {
-				return doReq(viewerClient, "POST", "/register/confirm", map[string]any{"token": regToken, "new_password": "password"})
+				return doReq(refereeClient, "POST", "/register/confirm", map[string]any{"token": regToken, "new_password": "password"})
 			},
 		},
 		{
@@ -475,7 +475,7 @@ func getSteps() []Step {
 				// Log them in
 				doReq(ref2Client, "POST", "/login", map[string]any{"email": "jane@referee.com", "password": "password"})
 				doReq(ref3Client, "POST", "/login", map[string]any{"email": "mark@referee.com", "password": "password"})
-				doReq(viewerClient, "POST", "/login", map[string]any{"email": "john@referee.com", "password": "password"})
+				doReq(refereeClient, "POST", "/login", map[string]any{"email": "john@referee.com", "password": "password"})
 
 				// Update profiles, phones and apply
 				doReq(ref2Client, "POST", "/user/profile", map[string]any{"postcode": "00-002", "city": "City", "street": "St", "street_number": "2", "flat_number": ""})
@@ -500,33 +500,20 @@ func getSteps() []Step {
 				doReq(ref3Client, "POST", "/user/setPhone/confirm", map[string]any{"token": pResp3.Data.FakeSMSMessage})
 				doReq(ref3Client, "POST", "/user/applyReferee", nil)
 
-				r1 := doReq(viewerClient, "POST", "/user/profile", map[string]any{"postcode": "00-001", "city": "Ref City", "street": "Ref St", "street_number": "1", "flat_number": ""})
-				r2 := doReq(viewerClient, "POST", "/user/setPhone", map[string]any{"phone": "123456789"})
+				r1 := doReq(refereeClient, "POST", "/user/profile", map[string]any{"postcode": "00-001", "city": "Ref City", "street": "Ref St", "street_number": "1", "flat_number": ""})
+				r2 := doReq(refereeClient, "POST", "/user/setPhone", map[string]any{"phone": "123456789"})
 				var pResp1 struct {
 					Data struct {
 						FakeSMSMessage string `json:"fake_sms_message"`
 					} `json:"data"`
 				}
 				json.Unmarshal([]byte(getRawJSON(r2)), &pResp1)
-				r3 := doReq(viewerClient, "POST", "/user/setPhone/confirm", map[string]any{"token": pResp1.Data.FakeSMSMessage})
-				r4 := doReq(viewerClient, "POST", "/user/applyReferee", nil)
+				r3 := doReq(refereeClient, "POST", "/user/setPhone/confirm", map[string]any{"token": pResp1.Data.FakeSMSMessage})
+				r4 := doReq(refereeClient, "POST", "/user/applyReferee", nil)
 				return r1 + "\n" + r2 + "\n" + r3 + "\n" + r4
 			},
 		},
 
-		{
-			Scene:   "SCENE 2: REFEREE ONBOARDING",
-			Desc:    "Referee logs in",
-			Caller:  "Referee (john@referee.com)",
-			Method:  "POST",
-			Path:    "/login",
-			Payload: func() any { return map[string]any{"email": "john@referee.com", "password": "password"} },
-			Do: func() string {
-				doReq(ref2Client, "POST", "/login", map[string]any{"email": "jane@referee.com", "password": "password"})
-				doReq(ref3Client, "POST", "/login", map[string]any{"email": "mark@referee.com", "password": "password"})
-				return doReq(refereeClient, "POST", "/login", map[string]any{"email": "john@referee.com", "password": "password"})
-			},
-		},
 		{
 			Scene:  "SCENE 2: REFEREE ONBOARDING",
 			Desc:   "Referee submits external license validation request",
