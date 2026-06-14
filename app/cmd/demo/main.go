@@ -427,12 +427,12 @@ func getSteps() []Step {
 		},
 		{
 			Scene:   "SCENE 2: REFEREE ONBOARDING",
-			Desc:    "Users update their profile and apply to become referees (Silent bulk)",
+			Desc:    "Users update their profile, verify phone, and apply to become referees (Silent bulk)",
 			Caller:  "User (john@referee.com)",
 			Method:  "POST",
-			MultiPath: []string{"/user/profile", "/user/applyReferee"},
+			MultiPath: []string{"/user/profile", "/user/setPhone", "/user/setPhone/confirm", "/user/applyReferee"},
 			RawBody: func() string {
-				return "body1:\n{\n  \"city\": \"Ref City\",\n  \"flat_number\": \"\",\n  \"phone\": \"123456789\",\n  \"postcode\": \"00-001\",\n  \"street\": \"Ref St\",\n  \"street_number\": \"1\"\n}\nbody2:\n{}"
+				return "body1:\n{\n  \"city\": \"Ref City\",\n  \"flat_number\": \"\",\n  \"postcode\": \"00-001\",\n  \"street\": \"Ref St\",\n  \"street_number\": \"1\"\n}\nbody2:\n{\n  \"phone\": \"123456789\"\n}\nbody3:\n{\n  \"token\": \"...\"\n}\nbody4:\n{}"
 			},
 			Do: func() string {
 				// Register others silently
@@ -451,16 +451,28 @@ func getSteps() []Step {
 				doReq(ref3Client, "POST", "/login", map[string]interface{}{"email": "mark@referee.com", "password": "password"})
 				doReq(viewerClient, "POST", "/login", map[string]interface{}{"email": "john@referee.com", "password": "password"})
 
-				// Update profiles and apply
-				doReq(ref2Client, "POST", "/user/profile", map[string]interface{}{"phone": "222222222", "postcode": "00-002", "city": "City", "street": "St", "street_number": "2", "flat_number": ""})
+				// Update profiles, phones and apply
+				doReq(ref2Client, "POST", "/user/profile", map[string]interface{}{"postcode": "00-002", "city": "City", "street": "St", "street_number": "2", "flat_number": ""})
+				ph2 := doReq(ref2Client, "POST", "/user/setPhone", map[string]interface{}{"phone": "222222222"})
+				var pResp2 struct{ Data struct{ FakeSMSMessage string `json:"fake_sms_message"` } `json:"data"` }
+				json.Unmarshal([]byte(getRawJSON(ph2)), &pResp2)
+				doReq(ref2Client, "POST", "/user/setPhone/confirm", map[string]interface{}{"token": pResp2.Data.FakeSMSMessage})
 				doReq(ref2Client, "POST", "/user/applyReferee", nil)
 
-				doReq(ref3Client, "POST", "/user/profile", map[string]interface{}{"phone": "333333333", "postcode": "00-003", "city": "City", "street": "St", "street_number": "3", "flat_number": ""})
+				doReq(ref3Client, "POST", "/user/profile", map[string]interface{}{"postcode": "00-003", "city": "City", "street": "St", "street_number": "3", "flat_number": ""})
+				ph3 := doReq(ref3Client, "POST", "/user/setPhone", map[string]interface{}{"phone": "333333333"})
+				var pResp3 struct{ Data struct{ FakeSMSMessage string `json:"fake_sms_message"` } `json:"data"` }
+				json.Unmarshal([]byte(getRawJSON(ph3)), &pResp3)
+				doReq(ref3Client, "POST", "/user/setPhone/confirm", map[string]interface{}{"token": pResp3.Data.FakeSMSMessage})
 				doReq(ref3Client, "POST", "/user/applyReferee", nil)
 				
-				r1 := doReq(viewerClient, "POST", "/user/profile", map[string]interface{}{"phone": "123456789", "postcode": "00-001", "city": "Ref City", "street": "Ref St", "street_number": "1", "flat_number": ""})
-				r2 := doReq(viewerClient, "POST", "/user/applyReferee", nil)
-				return r1 + "\n" + r2
+				r1 := doReq(viewerClient, "POST", "/user/profile", map[string]interface{}{"postcode": "00-001", "city": "Ref City", "street": "Ref St", "street_number": "1", "flat_number": ""})
+				r2 := doReq(viewerClient, "POST", "/user/setPhone", map[string]interface{}{"phone": "123456789"})
+				var pResp1 struct{ Data struct{ FakeSMSMessage string `json:"fake_sms_message"` } `json:"data"` }
+				json.Unmarshal([]byte(getRawJSON(r2)), &pResp1)
+				r3 := doReq(viewerClient, "POST", "/user/setPhone/confirm", map[string]interface{}{"token": pResp1.Data.FakeSMSMessage})
+				r4 := doReq(viewerClient, "POST", "/user/applyReferee", nil)
+				return r1 + "\n" + r2 + "\n" + r3 + "\n" + r4
 			},
 		},
 		{
