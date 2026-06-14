@@ -72,7 +72,7 @@ type Step struct {
 	Caller    string
 	Method    string
 	Path      string
-	Payload   func() interface{}
+	Payload   func() any
 	RawBody   func() string
 	MultiPath []string
 	Do        func() string // Does the request and extracts state if needed
@@ -316,9 +316,9 @@ func getSteps() []Step {
 			Caller:  "Admin",
 			Method:  "POST",
 			Path:    "/login",
-			Payload: func() interface{} { return map[string]interface{}{"email": "admin@example.com", "password": "admin"} },
+			Payload: func() any { return map[string]any{"email": "admin@example.com", "password": "admin"} },
 			Do: func() string {
-				return doReq(adminClient, "POST", "/login", map[string]interface{}{"email": "admin@example.com", "password": "admin"})
+				return doReq(adminClient, "POST", "/login", map[string]any{"email": "admin@example.com", "password": "admin"})
 			},
 		},
 		{
@@ -327,11 +327,11 @@ func getSteps() []Step {
 			Caller: "Admin",
 			Method: "POST",
 			Path:   "/admin/venues",
-			Payload: func() interface{} {
-				return map[string]interface{}{"gym_name": "Demo Arena", "postcode": "00-001", "city": "Demo City", "street": "Demo St", "street_number": "1"}
+			Payload: func() any {
+				return map[string]any{"gym_name": "Demo Arena", "postcode": "00-001", "city": "Demo City", "street": "Demo St", "street_number": "1"}
 			},
 			Do: func() string {
-				return doReq(adminClient, "POST", "/admin/venues", map[string]interface{}{"gym_name": "Demo Arena", "postcode": "00-001", "city": "Demo City", "street": "Demo St", "street_number": "1"})
+				return doReq(adminClient, "POST", "/admin/venues", map[string]any{"gym_name": "Demo Arena", "postcode": "00-001", "city": "Demo City", "street": "Demo St", "street_number": "1"})
 			},
 		},
 		{
@@ -340,9 +340,9 @@ func getSteps() []Step {
 			Caller:  "Admin",
 			Method:  "POST",
 			Path:    "/admin/teams",
-			Payload: func() interface{} { return map[string]interface{}{"name": "Team Alpha", "city": "Alpha City"} },
+			Payload: func() any { return map[string]any{"name": "Team Alpha", "city": "Alpha City"} },
 			Do: func() string {
-				return doReq(adminClient, "POST", "/admin/teams", map[string]interface{}{"name": "Team Alpha", "city": "Alpha City"})
+				return doReq(adminClient, "POST", "/admin/teams", map[string]any{"name": "Team Alpha", "city": "Alpha City"})
 			},
 		},
 		{
@@ -351,9 +351,9 @@ func getSteps() []Step {
 			Caller:  "Admin",
 			Method:  "POST",
 			Path:    "/admin/teams",
-			Payload: func() interface{} { return map[string]interface{}{"name": "Team Beta", "city": "Beta City"} },
+			Payload: func() any { return map[string]any{"name": "Team Beta", "city": "Beta City"} },
 			Do: func() string {
-				return doReq(adminClient, "POST", "/admin/teams", map[string]interface{}{"name": "Team Beta", "city": "Beta City"})
+				return doReq(adminClient, "POST", "/admin/teams", map[string]any{"name": "Team Beta", "city": "Beta City"})
 			},
 		},
 		{
@@ -362,11 +362,11 @@ func getSteps() []Step {
 			Caller: "Admin",
 			Method: "POST",
 			Path:   "/admin/matches",
-			Payload: func() interface{} {
-				return map[string]interface{}{"home_team_name": "Team Alpha", "away_team_name": "Team Beta", "venue_name": "Bad Venue", "match_level": "fiba", "match_start": "2026-06-15T12:00:00Z", "match_end": "2026-06-15T14:00:00Z"}
+			Payload: func() any {
+				return map[string]any{"home_team_name": "Team Alpha", "away_team_name": "Team Beta", "venue_name": "Bad Venue", "match_level": "fiba", "match_start": "2026-06-15T12:00:00Z", "match_end": "2026-06-15T14:00:00Z"}
 			},
 			Do: func() string {
-				return doReq(adminClient, "POST", "/admin/matches", map[string]interface{}{"home_team_name": "Team Alpha", "away_team_name": "Team Beta", "venue_name": "Bad Venue", "match_level": "fiba", "match_start": "2026-06-15T12:00:00Z", "match_end": "2026-06-15T14:00:00Z"})
+				return doReq(adminClient, "POST", "/admin/matches", map[string]any{"home_team_name": "Team Alpha", "away_team_name": "Team Beta", "venue_name": "Bad Venue", "match_level": "fiba", "match_start": "2026-06-15T12:00:00Z", "match_end": "2026-06-15T14:00:00Z"})
 			},
 		},
 		{
@@ -375,11 +375,11 @@ func getSteps() []Step {
 			Caller: "Admin",
 			Method: "POST",
 			Path:   "/admin/matches",
-			Payload: func() interface{} {
-				return map[string]interface{}{"home_team_name": "Team Alpha", "away_team_name": "Team Beta", "venue_name": "Demo Arena", "match_level": "fiba", "match_start": "2026-06-15T12:00:00Z", "match_end": "2026-06-15T14:00:00Z"}
+			Payload: func() any {
+				return map[string]any{"home_team_name": "Team Alpha", "away_team_name": "Team Beta", "venue_name": "Demo Arena", "match_level": "fiba", "match_start": "2026-06-15T12:00:00Z", "match_end": "2026-06-15T14:00:00Z"}
 			},
 			Do: func() string {
-				return doReq(adminClient, "POST", "/admin/matches", map[string]interface{}{"home_team_name": "Team Alpha", "away_team_name": "Team Beta", "venue_name": "Demo Arena", "match_level": "fiba", "match_start": "2026-06-15T12:00:00Z", "match_end": "2026-06-15T14:00:00Z"})
+				return doReq(adminClient, "POST", "/admin/matches", map[string]any{"home_team_name": "Team Alpha", "away_team_name": "Team Beta", "venue_name": "Demo Arena", "match_level": "fiba", "match_start": "2026-06-15T12:00:00Z", "match_end": "2026-06-15T14:00:00Z"})
 			},
 		},
 		{
@@ -404,10 +404,10 @@ func getSteps() []Step {
 				return "body1:\n{\n  \"fee\": 150,\n  \"match_level\": \"fiba\",\n  \"match_role\": \"crew_chief\"\n}\nbody2:\n{\n  \"fee\": 100,\n  \"match_level\": \"fiba\",\n  \"match_role\": \"umpire\"\n}\nbody3:\n{\n  \"fee\": 200,\n  \"match_level\": \"plk\",\n  \"match_role\": \"crew_chief\"\n}\nbody4:\n{\n  \"fee\": 150,\n  \"match_level\": \"plk\",\n  \"match_role\": \"umpire\"\n}"
 			},
 			Do: func() string {
-				r1 := doReq(adminClient, "POST", "/admin/wages", map[string]interface{}{"match_level": "fiba", "match_role": "crew_chief", "fee": 150.0})
-				r2 := doReq(adminClient, "POST", "/admin/wages", map[string]interface{}{"match_level": "fiba", "match_role": "umpire", "fee": 100.0})
-				r3 := doReq(adminClient, "POST", "/admin/wages", map[string]interface{}{"match_level": "plk", "match_role": "crew_chief", "fee": 200.0})
-				r4 := doReq(adminClient, "POST", "/admin/wages", map[string]interface{}{"match_level": "plk", "match_role": "umpire", "fee": 150.0})
+				r1 := doReq(adminClient, "POST", "/admin/wages", map[string]any{"match_level": "fiba", "match_role": "crew_chief", "fee": 150.0})
+				r2 := doReq(adminClient, "POST", "/admin/wages", map[string]any{"match_level": "fiba", "match_role": "umpire", "fee": 100.0})
+				r3 := doReq(adminClient, "POST", "/admin/wages", map[string]any{"match_level": "plk", "match_role": "crew_chief", "fee": 200.0})
+				r4 := doReq(adminClient, "POST", "/admin/wages", map[string]any{"match_level": "plk", "match_role": "umpire", "fee": 150.0})
 				return r1 + "\n" + r2 + "\n" + r3 + "\n" + r4
 			},
 		},
@@ -417,11 +417,11 @@ func getSteps() []Step {
 			Caller: "Normal User (john@referee.com)",
 			Method: "POST",
 			Path:   "/register/",
-			Payload: func() interface{} {
-				return map[string]interface{}{"name": "John", "surname": "Whistle", "email": "john@referee.com"}
+			Payload: func() any {
+				return map[string]any{"name": "John", "surname": "Whistle", "email": "john@referee.com"}
 			},
 			Do: func() string {
-				res := doReq(viewerClient, "POST", "/register/", map[string]interface{}{"name": "John", "surname": "Whistle", "email": "john@referee.com"})
+				res := doReq(viewerClient, "POST", "/register/", map[string]any{"name": "John", "surname": "Whistle", "email": "john@referee.com"})
 				var rResp struct {
 					Data struct {
 						Token string `json:"fake_email_message"`
@@ -438,9 +438,9 @@ func getSteps() []Step {
 			Caller:  "Normal User (john@referee.com)",
 			Method:  "POST",
 			Path:    "/register/confirm",
-			Payload: func() interface{} { return map[string]interface{}{"token": regToken, "new_password": "password"} },
+			Payload: func() any { return map[string]any{"token": regToken, "new_password": "password"} },
 			Do: func() string {
-				return doReq(viewerClient, "POST", "/register/confirm", map[string]interface{}{"token": regToken, "new_password": "password"})
+				return doReq(viewerClient, "POST", "/register/confirm", map[string]any{"token": regToken, "new_password": "password"})
 			},
 		},
 		{
@@ -454,61 +454,61 @@ func getSteps() []Step {
 			},
 			Do: func() string {
 				// Register others silently
-				res2 := doReq(viewerClient, "POST", "/register/", map[string]interface{}{"name": "Jane", "surname": "Smith", "email": "jane@referee.com"})
+				res2 := doReq(viewerClient, "POST", "/register/", map[string]any{"name": "Jane", "surname": "Smith", "email": "jane@referee.com"})
 				var rResp2 struct {
 					Data struct {
 						Token string `json:"fake_email_message"`
 					} `json:"data"`
 				}
 				json.Unmarshal([]byte(getRawJSON(res2)), &rResp2)
-				doReq(viewerClient, "POST", "/register/confirm", map[string]interface{}{"token": rResp2.Data.Token, "new_password": "password"})
+				doReq(viewerClient, "POST", "/register/confirm", map[string]any{"token": rResp2.Data.Token, "new_password": "password"})
 
-				res3 := doReq(viewerClient, "POST", "/register/", map[string]interface{}{"name": "Mark", "surname": "Doe", "email": "mark@referee.com"})
+				res3 := doReq(viewerClient, "POST", "/register/", map[string]any{"name": "Mark", "surname": "Doe", "email": "mark@referee.com"})
 				var rResp3 struct {
 					Data struct {
 						Token string `json:"fake_email_message"`
 					} `json:"data"`
 				}
 				json.Unmarshal([]byte(getRawJSON(res3)), &rResp3)
-				doReq(viewerClient, "POST", "/register/confirm", map[string]interface{}{"token": rResp3.Data.Token, "new_password": "password"})
+				doReq(viewerClient, "POST", "/register/confirm", map[string]any{"token": rResp3.Data.Token, "new_password": "password"})
 
 				// Log them in
-				doReq(ref2Client, "POST", "/login", map[string]interface{}{"email": "jane@referee.com", "password": "password"})
-				doReq(ref3Client, "POST", "/login", map[string]interface{}{"email": "mark@referee.com", "password": "password"})
-				doReq(viewerClient, "POST", "/login", map[string]interface{}{"email": "john@referee.com", "password": "password"})
+				doReq(ref2Client, "POST", "/login", map[string]any{"email": "jane@referee.com", "password": "password"})
+				doReq(ref3Client, "POST", "/login", map[string]any{"email": "mark@referee.com", "password": "password"})
+				doReq(viewerClient, "POST", "/login", map[string]any{"email": "john@referee.com", "password": "password"})
 
 				// Update profiles, phones and apply
-				doReq(ref2Client, "POST", "/user/profile", map[string]interface{}{"postcode": "00-002", "city": "City", "street": "St", "street_number": "2", "flat_number": ""})
-				ph2 := doReq(ref2Client, "POST", "/user/setPhone", map[string]interface{}{"phone": "222222222"})
+				doReq(ref2Client, "POST", "/user/profile", map[string]any{"postcode": "00-002", "city": "City", "street": "St", "street_number": "2", "flat_number": ""})
+				ph2 := doReq(ref2Client, "POST", "/user/setPhone", map[string]any{"phone": "222222222"})
 				var pResp2 struct {
 					Data struct {
 						FakeSMSMessage string `json:"fake_sms_message"`
 					} `json:"data"`
 				}
 				json.Unmarshal([]byte(getRawJSON(ph2)), &pResp2)
-				doReq(ref2Client, "POST", "/user/setPhone/confirm", map[string]interface{}{"token": pResp2.Data.FakeSMSMessage})
+				doReq(ref2Client, "POST", "/user/setPhone/confirm", map[string]any{"token": pResp2.Data.FakeSMSMessage})
 				doReq(ref2Client, "POST", "/user/applyReferee", nil)
 
-				doReq(ref3Client, "POST", "/user/profile", map[string]interface{}{"postcode": "00-003", "city": "City", "street": "St", "street_number": "3", "flat_number": ""})
-				ph3 := doReq(ref3Client, "POST", "/user/setPhone", map[string]interface{}{"phone": "333333333"})
+				doReq(ref3Client, "POST", "/user/profile", map[string]any{"postcode": "00-003", "city": "City", "street": "St", "street_number": "3", "flat_number": ""})
+				ph3 := doReq(ref3Client, "POST", "/user/setPhone", map[string]any{"phone": "333333333"})
 				var pResp3 struct {
 					Data struct {
 						FakeSMSMessage string `json:"fake_sms_message"`
 					} `json:"data"`
 				}
 				json.Unmarshal([]byte(getRawJSON(ph3)), &pResp3)
-				doReq(ref3Client, "POST", "/user/setPhone/confirm", map[string]interface{}{"token": pResp3.Data.FakeSMSMessage})
+				doReq(ref3Client, "POST", "/user/setPhone/confirm", map[string]any{"token": pResp3.Data.FakeSMSMessage})
 				doReq(ref3Client, "POST", "/user/applyReferee", nil)
 
-				r1 := doReq(viewerClient, "POST", "/user/profile", map[string]interface{}{"postcode": "00-001", "city": "Ref City", "street": "Ref St", "street_number": "1", "flat_number": ""})
-				r2 := doReq(viewerClient, "POST", "/user/setPhone", map[string]interface{}{"phone": "123456789"})
+				r1 := doReq(viewerClient, "POST", "/user/profile", map[string]any{"postcode": "00-001", "city": "Ref City", "street": "Ref St", "street_number": "1", "flat_number": ""})
+				r2 := doReq(viewerClient, "POST", "/user/setPhone", map[string]any{"phone": "123456789"})
 				var pResp1 struct {
 					Data struct {
 						FakeSMSMessage string `json:"fake_sms_message"`
 					} `json:"data"`
 				}
 				json.Unmarshal([]byte(getRawJSON(r2)), &pResp1)
-				r3 := doReq(viewerClient, "POST", "/user/setPhone/confirm", map[string]interface{}{"token": pResp1.Data.FakeSMSMessage})
+				r3 := doReq(viewerClient, "POST", "/user/setPhone/confirm", map[string]any{"token": pResp1.Data.FakeSMSMessage})
 				r4 := doReq(viewerClient, "POST", "/user/applyReferee", nil)
 				return r1 + "\n" + r2 + "\n" + r3 + "\n" + r4
 			},
@@ -534,11 +534,11 @@ func getSteps() []Step {
 			Caller:  "Referee (john@referee.com)",
 			Method:  "POST",
 			Path:    "/login",
-			Payload: func() interface{} { return map[string]interface{}{"email": "john@referee.com", "password": "password"} },
+			Payload: func() any { return map[string]any{"email": "john@referee.com", "password": "password"} },
 			Do: func() string {
-				doReq(ref2Client, "POST", "/login", map[string]interface{}{"email": "jane@referee.com", "password": "password"})
-				doReq(ref3Client, "POST", "/login", map[string]interface{}{"email": "mark@referee.com", "password": "password"})
-				return doReq(refereeClient, "POST", "/login", map[string]interface{}{"email": "john@referee.com", "password": "password"})
+				doReq(ref2Client, "POST", "/login", map[string]any{"email": "jane@referee.com", "password": "password"})
+				doReq(ref3Client, "POST", "/login", map[string]any{"email": "mark@referee.com", "password": "password"})
+				return doReq(refereeClient, "POST", "/login", map[string]any{"email": "john@referee.com", "password": "password"})
 			},
 		},
 		{
@@ -547,13 +547,13 @@ func getSteps() []Step {
 			Caller: "Referee (john@referee.com)",
 			Method: "POST",
 			Path:   "/referee/license",
-			Payload: func() interface{} {
-				return map[string]interface{}{"license_name": "fiba", "license_number": "FIBA-JOHN-001", "accept": true}
+			Payload: func() any {
+				return map[string]any{"license_name": "fiba", "license_number": "FIBA-JOHN-001", "accept": true}
 			},
 			Do: func() string {
-				doReq(ref2Client, "POST", "/referee/license", map[string]interface{}{"license_name": "fiba", "license_number": "FIBA-JANE-002", "accept": true})
-				doReq(ref3Client, "POST", "/referee/license", map[string]interface{}{"license_name": "fiba", "license_number": "FIBA-MARK-003", "accept": true})
-				return doReq(refereeClient, "POST", "/referee/license", map[string]interface{}{"license_name": "fiba", "license_number": "FIBA-JOHN-001", "accept": true})
+				doReq(ref2Client, "POST", "/referee/license", map[string]any{"license_name": "fiba", "license_number": "FIBA-JANE-002", "accept": true})
+				doReq(ref3Client, "POST", "/referee/license", map[string]any{"license_name": "fiba", "license_number": "FIBA-MARK-003", "accept": true})
+				return doReq(refereeClient, "POST", "/referee/license", map[string]any{"license_name": "fiba", "license_number": "FIBA-JOHN-001", "accept": true})
 			},
 		},
 		{
@@ -562,9 +562,9 @@ func getSteps() []Step {
 			Caller:  "Referee (john@referee.com)",
 			Method:  "POST",
 			Path:    "/referee/availability",
-			Payload: func() interface{} { return map[string]interface{}{"date": "2026-06-15"} },
+			Payload: func() any { return map[string]any{"date": "2026-06-15"} },
 			Do: func() string {
-				return doReq(refereeClient, "POST", "/referee/availability", map[string]interface{}{"date": "2026-06-15"})
+				return doReq(refereeClient, "POST", "/referee/availability", map[string]any{"date": "2026-06-15"})
 			},
 		},
 		{
@@ -577,9 +577,9 @@ func getSteps() []Step {
 				return fmt.Sprintf("body1:\n{\n  \"match_id\": %d,\n  \"referee_id\": %d,\n  \"role\": \"crew_chief\"\n}\nbody2:\n{\n  \"match_id\": %d,\n  \"referee_id\": %d,\n  \"role\": \"umpire\"\n}\nbody3:\n{\n  \"match_id\": %d,\n  \"referee_id\": %d,\n  \"role\": \"umpire\"\n}", matchID, refereeID, matchID, ref2ID, matchID, ref3ID)
 			},
 			Do: func() string {
-				r1 := doReq(adminClient, "POST", "/admin/match/assign", map[string]interface{}{"match_id": matchID, "referee_id": refereeID, "role": "crew_chief"})
-				r2 := doReq(adminClient, "POST", "/admin/match/assign", map[string]interface{}{"match_id": matchID, "referee_id": ref2ID, "role": "umpire"})
-				r3 := doReq(adminClient, "POST", "/admin/match/assign", map[string]interface{}{"match_id": matchID, "referee_id": ref3ID, "role": "umpire"})
+				r1 := doReq(adminClient, "POST", "/admin/match/assign", map[string]any{"match_id": matchID, "referee_id": refereeID, "role": "crew_chief"})
+				r2 := doReq(adminClient, "POST", "/admin/match/assign", map[string]any{"match_id": matchID, "referee_id": ref2ID, "role": "umpire"})
+				r3 := doReq(adminClient, "POST", "/admin/match/assign", map[string]any{"match_id": matchID, "referee_id": ref3ID, "role": "umpire"})
 				return r1 + "\n" + r2 + "\n" + r3
 			},
 		},
@@ -601,11 +601,11 @@ func getSteps() []Step {
 			Caller:  "Referee (john@referee.com)",
 			Method:  "POST",
 			Path:    "/referee/assignment/respond",
-			Payload: func() interface{} { return map[string]interface{}{"match_id": matchID, "accept": true} },
+			Payload: func() any { return map[string]any{"match_id": matchID, "accept": true} },
 			Do: func() string {
-				doReq(ref2Client, "POST", "/referee/assignment/respond", map[string]interface{}{"match_id": matchID, "accept": true})
-				doReq(ref3Client, "POST", "/referee/assignment/respond", map[string]interface{}{"match_id": matchID, "accept": true})
-				return doReq(refereeClient, "POST", "/referee/assignment/respond", map[string]interface{}{"match_id": matchID, "accept": true})
+				doReq(ref2Client, "POST", "/referee/assignment/respond", map[string]any{"match_id": matchID, "accept": true})
+				doReq(ref3Client, "POST", "/referee/assignment/respond", map[string]any{"match_id": matchID, "accept": true})
+				return doReq(refereeClient, "POST", "/referee/assignment/respond", map[string]any{"match_id": matchID, "accept": true})
 			},
 		},
 		{
@@ -614,15 +614,15 @@ func getSteps() []Step {
 			Caller: "Referee (john@referee.com)",
 			Method: "POST",
 			Path:   "/referee/match/score",
-			Payload: func() interface{} {
-				return map[string]interface{}{"match_id": matchID, "home_team_points": 2, "away_team_points": 1}
+			Payload: func() any {
+				return map[string]any{"match_id": matchID, "home_team_points": 2, "away_team_points": 1}
 			},
 			Do: func() string {
 				// Fast forward match end time to past so submission is valid
 				db, _ := sql.Open("mysql", "root:root@tcp(ubuntu:3306)/db?parseTime=true")
 				db.Exec("UPDATE matches SET match_end = NOW() - INTERVAL 1 HOUR WHERE id = ?", matchID)
 				db.Close()
-				return doReq(refereeClient, "POST", "/referee/match/score", map[string]interface{}{"match_id": matchID, "home_team_points": 2, "away_team_points": 1})
+				return doReq(refereeClient, "POST", "/referee/match/score", map[string]any{"match_id": matchID, "home_team_points": 2, "away_team_points": 1})
 			},
 		},
 		{
@@ -631,17 +631,17 @@ func getSteps() []Step {
 			Caller:  "Normal User (bob@fan.com)",
 			Method:  "POST",
 			Path:    "/login",
-			Payload: func() interface{} { return map[string]interface{}{"email": "bob@fan.com", "password": "password"} },
+			Payload: func() any { return map[string]any{"email": "bob@fan.com", "password": "password"} },
 			Do: func() string {
-				res := doReq(viewerClient, "POST", "/register/", map[string]interface{}{"name": "Bob", "surname": "Fan", "email": "bob@fan.com"})
+				res := doReq(viewerClient, "POST", "/register/", map[string]any{"name": "Bob", "surname": "Fan", "email": "bob@fan.com"})
 				var rResp struct {
 					Data struct {
 						Token string `json:"fake_email_message"`
 					} `json:"data"`
 				}
 				json.Unmarshal([]byte(getRawJSON(res)), &rResp)
-				doReq(viewerClient, "POST", "/register/confirm", map[string]interface{}{"token": rResp.Data.Token, "new_password": "password"})
-				return doReq(viewerClient, "POST", "/login", map[string]interface{}{"email": "bob@fan.com", "password": "password"})
+				doReq(viewerClient, "POST", "/register/confirm", map[string]any{"token": rResp.Data.Token, "new_password": "password"})
+				return doReq(viewerClient, "POST", "/login", map[string]any{"email": "bob@fan.com", "password": "password"})
 			},
 		},
 		{
@@ -660,11 +660,11 @@ func getSteps() []Step {
 			Caller: "Normal User (bob@fan.com)",
 			Method: "POST",
 			Path:   "/user/rate",
-			Payload: func() interface{} {
-				return map[string]interface{}{"referee_id": refereeID, "match_id": matchID, "rating": 5}
+			Payload: func() any {
+				return map[string]any{"referee_id": refereeID, "match_id": matchID, "rating": 5}
 			},
 			Do: func() string {
-				return doReq(viewerClient, "POST", "/user/rate", map[string]interface{}{"referee_id": refereeID, "match_id": matchID, "rating": 5})
+				return doReq(viewerClient, "POST", "/user/rate", map[string]any{"referee_id": refereeID, "match_id": matchID, "rating": 5})
 			},
 		},
 		{
@@ -673,9 +673,9 @@ func getSteps() []Step {
 			Caller:  "Admin",
 			Method:  "POST",
 			Path:    "/admin/payouts/pending",
-			Payload: func() interface{} { return map[string]interface{}{"all": true} },
+			Payload: func() any { return map[string]any{"all": true} },
 			Do: func() string {
-				return doReq(adminClient, "POST", "/admin/payouts/pending", map[string]interface{}{"all": true})
+				return doReq(adminClient, "POST", "/admin/payouts/pending", map[string]any{"all": true})
 			},
 		},
 		{
@@ -684,28 +684,28 @@ func getSteps() []Step {
 			Caller:  "Admin",
 			Method:  "POST",
 			Path:    "/admin/payouts/sent",
-			Payload: func() interface{} { return map[string]interface{}{"referee_ids": []int{refereeID, ref2ID, ref3ID}} },
+			Payload: func() any { return map[string]any{"referee_ids": []int{refereeID, ref2ID, ref3ID}} },
 			Do: func() string {
-				res := doReq(adminClient, "POST", "/admin/payouts/sent", map[string]interface{}{"referee_ids": []int{refereeID, ref2ID, ref3ID}})
-				var parsed map[string]interface{}
+				res := doReq(adminClient, "POST", "/admin/payouts/sent", map[string]any{"referee_ids": []int{refereeID, ref2ID, ref3ID}})
+				var parsed map[string]any
 				json.Unmarshal([]byte(getRawJSON(res)), &parsed)
-				if data, ok := parsed["data"].([]interface{}); ok && len(data) >= 3 {
-					if tx, ok := data[0].(map[string]interface{})["bank_transaction_id"].(string); ok {
+				if data, ok := parsed["data"].([]any); ok && len(data) >= 3 {
+					if tx, ok := data[0].(map[string]any)["bank_transaction_id"].(string); ok {
 						bankTxID = tx
 					}
-					if tx, ok := data[1].(map[string]interface{})["bank_transaction_id"].(string); ok {
+					if tx, ok := data[1].(map[string]any)["bank_transaction_id"].(string); ok {
 						bankTx2 = tx
 					}
-					if tx, ok := data[2].(map[string]interface{})["bank_transaction_id"].(string); ok {
+					if tx, ok := data[2].(map[string]any)["bank_transaction_id"].(string); ok {
 						bankTx3 = tx
 					}
-					if pID, ok := data[0].(map[string]interface{})["payout_id"].(float64); ok {
+					if pID, ok := data[0].(map[string]any)["payout_id"].(float64); ok {
 						payoutID = int(pID)
 					}
-					if pID, ok := data[1].(map[string]interface{})["payout_id"].(float64); ok {
+					if pID, ok := data[1].(map[string]any)["payout_id"].(float64); ok {
 						payout2ID = int(pID)
 					}
-					if pID, ok := data[2].(map[string]interface{})["payout_id"].(float64); ok {
+					if pID, ok := data[2].(map[string]any)["payout_id"].(float64); ok {
 						payout3ID = int(pID)
 					}
 				}
@@ -730,16 +730,16 @@ func getSteps() []Step {
 			Caller: "Admin",
 			Method: "POST",
 			Path:   "/admin/payouts/confirm",
-			Payload: func() interface{} {
-				return map[string]interface{}{"confirmations": []map[string]interface{}{
+			Payload: func() any {
+				return map[string]any{"confirmations": []map[string]any{
 					{"payout_id": payoutID, "bank_transaction_id": bankTxID, "status": "paid"},
 					{"payout_id": payout2ID, "bank_transaction_id": bankTx2, "status": "paid"},
 					{"payout_id": payout3ID, "bank_transaction_id": bankTx3, "status": "failed"},
 				}}
 			},
 			Do: func() string {
-				return doReq(adminClient, "POST", "/admin/payouts/confirm", map[string]interface{}{
-					"confirmations": []map[string]interface{}{
+				return doReq(adminClient, "POST", "/admin/payouts/confirm", map[string]any{
+					"confirmations": []map[string]any{
 						{"payout_id": payoutID, "bank_transaction_id": bankTxID, "status": "paid"},
 						{"payout_id": payout2ID, "bank_transaction_id": bankTx2, "status": "paid"},
 						{"payout_id": payout3ID, "bank_transaction_id": bankTx3, "status": "failed"},
@@ -760,7 +760,7 @@ func getSteps() []Step {
 	}
 }
 
-func doReq(client *http.Client, method, path string, bodyObj interface{}) string {
+func doReq(client *http.Client, method, path string, bodyObj any) string {
 	var reqBody io.Reader
 	if bodyObj != nil {
 		reqBodyBytes, _ := json.Marshal(bodyObj)
@@ -798,11 +798,11 @@ func getRawJSON(s string) string {
 }
 
 func extractMatchID(resJSON string, home, away string) int {
-	var parsed map[string]interface{}
+	var parsed map[string]any
 	json.Unmarshal([]byte(getRawJSON(resJSON)), &parsed)
-	if data, ok := parsed["data"].([]interface{}); ok {
+	if data, ok := parsed["data"].([]any); ok {
 		for _, item := range data {
-			match := item.(map[string]interface{})
+			match := item.(map[string]any)
 			if match["home_team_name"] == home && match["away_team_name"] == away {
 				return int(match["id"].(float64))
 			}
@@ -812,11 +812,11 @@ func extractMatchID(resJSON string, home, away string) int {
 }
 
 func extractRefereeID(resJSON string, email string) int {
-	var parsed map[string]interface{}
+	var parsed map[string]any
 	json.Unmarshal([]byte(getRawJSON(resJSON)), &parsed)
-	if data, ok := parsed["data"].([]interface{}); ok {
+	if data, ok := parsed["data"].([]any); ok {
 		for _, item := range data {
-			ref := item.(map[string]interface{})
+			ref := item.(map[string]any)
 			if ref["email"] == email {
 				return int(ref["id"].(float64))
 			}
@@ -826,10 +826,10 @@ func extractRefereeID(resJSON string, email string) int {
 }
 
 func extractPayoutID(resJSON string) int {
-	var parsed map[string]interface{}
+	var parsed map[string]any
 	json.Unmarshal([]byte(getRawJSON(resJSON)), &parsed)
-	if data, ok := parsed["data"].([]interface{}); ok && len(data) > 0 {
-		payout := data[0].(map[string]interface{})
+	if data, ok := parsed["data"].([]any); ok && len(data) > 0 {
+		payout := data[0].(map[string]any)
 		return int(payout["id"].(float64))
 	}
 	return 0
