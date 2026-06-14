@@ -168,7 +168,7 @@ func (m model) View() string {
 	}
 
 	header := titleStyle.Background(sceneColor).Width(m.width).Render("BAZY API DEMO")
-	sceneTitle := lipgloss.NewStyle().Align(lipgloss.Center).Width(m.width).Bold(true).Foreground(lipgloss.Color("#E88388")).Render(fmt.Sprintf("--- %s: %s ---", step.Scene, step.Desc))
+	sceneTitle := lipgloss.NewStyle().Align(lipgloss.Center).Width(m.width).Bold(true).Foreground(lipgloss.Color("#E88388")).Render(fmt.Sprintf("--- %s - %s ---", step.Scene, step.Desc))
 	stepTitle := lipgloss.NewStyle().Bold(true).Render(fmt.Sprintf("Step %d", m.stepIdx+1))
 
 	// Prepare Left Panel
@@ -358,7 +358,7 @@ func getSteps() []Step {
 		},
 		{
 			Scene:  "SCENE 1: ADMIN DATA SETUP",
-			Desc:   "Admin schedules a match with non-existent venue (Error Demo)",
+			Desc:   "Admin schedules a match with non-existent venue",
 			Caller: "Admin",
 			Method: "POST",
 			Path:   "/admin/matches",
@@ -396,7 +396,7 @@ func getSteps() []Step {
 		},
 		{
 			Scene:     "SCENE 1: ADMIN DATA SETUP",
-			Desc:      "Admin sets wages for the FIBA league (Multiple)",
+			Desc:      "Admin sets wages for the FIBA league",
 			Caller:    "Admin",
 			Method:    "POST",
 			MultiPath: []string{"/admin/wages", "/admin/wages", "/admin/wages", "/admin/wages"},
@@ -445,7 +445,7 @@ func getSteps() []Step {
 		},
 		{
 			Scene:     "SCENE 2: REFEREE ONBOARDING",
-			Desc:      "Users update their profile, verify phone, and apply to become referees (Silent bulk)",
+			Desc:      "Users update their profile, verify phone, and apply to become referees",
 			Caller:    "User (john@referee.com)",
 			Method:    "POST",
 			MultiPath: []string{"/user/profile", "/user/setPhone", "/user/setPhone/confirm", "/user/applyReferee"},
@@ -543,7 +543,7 @@ func getSteps() []Step {
 		},
 		{
 			Scene:  "SCENE 2: REFEREE ONBOARDING",
-			Desc:   "Referee submits external license validation request (Others run silently)",
+			Desc:   "Referee submits external license validation request",
 			Caller: "Referee (john@referee.com)",
 			Method: "POST",
 			Path:   "/referee/license",
@@ -726,7 +726,7 @@ func getSteps() []Step {
 		},
 		{
 			Scene:  "SCENE 5: PAYOUT PROCESSING",
-			Desc:   "Admin confirms bank transfers (2 paid, 1 failed)",
+			Desc:   "Admin confirms bank transfers",
 			Caller: "Admin",
 			Method: "POST",
 			Path:   "/admin/payouts/confirm",
